@@ -1,4 +1,4 @@
-# Rate Control via Fixed Rate Setting 
+# Rate Control via Manual MRR Chain Setting
 
 Allows rate setting using the lowest supported rate or a random choice from 
 the set of supported rates. 

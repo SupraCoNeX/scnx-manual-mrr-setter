@@ -5,7 +5,7 @@
 import setuptools 
 from os import path
 
-name = "fixer"
+name = "manual_mrr_setter"
 author = "SupraCoNeX"
 version = "0.0.1"
 release = ".".join(version.split(".")[:2])
@@ -22,7 +22,7 @@ setuptools.setup(
     version="0.0.1",
     author=author,
     author_email="supraconex@supraconex.org",
-    description="Rate Control via Fixed Rate Setting",
+    description="Rate Control via Manual MRR Chain Setting",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/supraconex.org",

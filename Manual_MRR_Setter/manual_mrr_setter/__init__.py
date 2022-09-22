@@ -4,8 +4,8 @@
 #
 
 r"""
-Random Rate Setter
-==================
+Manual Multi-Rate-Retry Chain Setter
+====================================
 
 Motivation
 ----------
@@ -18,5 +18,5 @@ Motivation
 __version__ = "0.0.1"
 
 
-from .fixer import *
+from .manual_mrr_setter import *
 

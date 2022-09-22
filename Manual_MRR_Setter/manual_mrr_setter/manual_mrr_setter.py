@@ -4,19 +4,16 @@
 #
 
 import asyncio 
-import datetime
 import time
-import os
 import random
-import csv
 import logging
 
 __all__ = [
-    "FixRate",
+    "ManualMRRSetter",
     "start",
 ]
 
-class FixRate:
+class ManualMRRSetter:
     def __init__(self, ap, loop, **options):
 
         self._loop = loop
@@ -35,7 +32,7 @@ class FixRate:
                 if self._ap.get_stations():
                     break
                 else:
-                    print("Waiting for at least one station!")
+                    logging.info("Waiting for at least one station on {ap.ap_id}")
                     await asyncio.sleep(0.01)
             except KeyboardInterrupt:
                 break
@@ -104,8 +101,8 @@ class FixRate:
     
 async def start(ap, loop, **options):
     
-    fixer = FixRate(ap, loop, **options)
+    rate_setter = ManualMRRSetter(ap, loop, **options)
     await asyncio.sleep(0.1)
-    await fixer.execute_rate_setting()
+    await rate_setter.execute_rate_setting()
     
     
