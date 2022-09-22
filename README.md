@@ -1,2 +1,3 @@
-# scnx-fixer
-Rate Control via Fixed Rate Setting
+# Rate Control via Manual MRR Chain Setting
+
+Under development
