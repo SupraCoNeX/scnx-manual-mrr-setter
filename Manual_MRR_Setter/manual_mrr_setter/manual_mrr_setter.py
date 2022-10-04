@@ -48,6 +48,8 @@ class ManualMRRSetter:
         
         for phy in self._ap.phys:
             self._ap.enable_manual_mode(phy)
+            self._ap.reset_phy_stats(phy)
+            self._ap.enable_rc_info(phy)
             
         while True:
             await asyncio.sleep(0.1)
