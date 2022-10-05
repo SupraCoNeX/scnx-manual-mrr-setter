@@ -43,7 +43,7 @@ class ManualMRRSetter:
 
         """
         
-        print("Starting Fixed Rate Setter in User Space")        
+        print("Starting Manual MRR Setter in User Space")        
         await self._wait_for_stations()
         
         for phy in self._ap.phys:
@@ -85,14 +85,13 @@ class ManualMRRSetter:
                 if "random" in rate_choices:     
                     first_rate = rates[0]
                     airtime_first_rate = station.airtimes_ns[station.supp_rates.index(first_rate)]
-                    
                     weight = airtime_first_rate/fastest_airtime
                 else:
                     weight = 1
+                                
+                logging.info(f"Setting {rates[0]} on {station.mac_addr} for {self._interval_ns*weight*1e-6} milliseconds")
                 
                 start_time = time.perf_counter_ns()
-                logging.info(f"Setting {rates[0]} for {self._interval_ns*weight*1e-6} milliseconds")
-
                 while True:
                     self._ap.set_rate(station.radio, station.mac_addr, rates, counts)                    
                     if (time.perf_counter_ns() - start_time) > self._interval_ns*weight:
