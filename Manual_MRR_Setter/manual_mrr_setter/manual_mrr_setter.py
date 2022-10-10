@@ -7,6 +7,7 @@ import asyncio
 import time
 import random
 import logging
+import copy
 
 __all__ = [
     "ManualMRRSetter",
@@ -68,10 +69,9 @@ class ManualMRRSetter:
         rate_choices = self._multi_rate_retry.split(";")[0].split(',')
         counts = self._multi_rate_retry.split(";")[1].split(',')
         
-        if "random" in rate_choices:
-            airtimes_ns = station.airtimes_ns
-            airtimes_ns.sort()
-            fastest_airtime = airtimes_ns[0]
+        airtimes_ns = copy.deepcopy(station.airtimes_ns)
+        airtimes_ns.sort()
+        fastest_airtime = airtimes_ns[0]
 
         while True:
             rates = []
@@ -82,21 +82,19 @@ class ManualMRRSetter:
                     else:
                         rates.append(station.supp_rates[0])  
                         
-                if "random" in rate_choices:     
-                    first_rate = rates[0]
-                    airtime_first_rate = station.airtimes_ns[station.supp_rates.index(first_rate)]
-                    weight = airtime_first_rate/fastest_airtime
-                else:
-                    weight = 1
-                                
-                logging.info(f"Setting {rates[0]} on {station.mac_addr} for {self._interval_ns*weight*1e-6} milliseconds")
+                first_rate = rates[0]
+                
+                airtime_first_rate = station.airtimes_ns[station.supp_rates.index(first_rate)]
+                weight = airtime_first_rate/fastest_airtime
+                
+                logging.info(f"Setting {rates} for {station.mac_addr} on {station.radio} for {self._interval_ns*weight*1e-6} milliseconds")
                 
                 start_time = time.perf_counter_ns()
                 while True:
                     self._ap.set_rate(station.radio, station.mac_addr, rates, counts)                    
                     if (time.perf_counter_ns() - start_time) > self._interval_ns*weight:
                         break
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0.001)
             except KeyboardInterrupt:
                  break   
     
