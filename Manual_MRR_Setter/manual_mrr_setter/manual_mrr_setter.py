@@ -45,10 +45,14 @@ class ManualMRRSetter:
         """
         
         print("Starting Manual MRR Setter in User Space")        
-        await self._wait_for_stations()
+       
         
         for phy in self._ap.phys:
             self._ap.enable_manual_mode(phy)
+            
+        await self._wait_for_stations()
+        
+        for phy in self._ap.phys:
             self._ap.reset_phy_stats(phy)
             self._ap.enable_rc_info(phy)
             
