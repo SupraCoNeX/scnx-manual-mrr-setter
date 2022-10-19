@@ -73,6 +73,8 @@ class ManualMRRSetter:
         rate_choices = self._multi_rate_retry.split(";")[0].split(',')
         counts = self._multi_rate_retry.split(";")[1].split(',')
         
+        supp_rates = station.supp_rates
+        rate_idx = 0
         airtimes_ns = copy.deepcopy(station.airtimes_ns)
         airtimes_ns.sort()
         fastest_airtime = airtimes_ns[0]
@@ -83,8 +85,15 @@ class ManualMRRSetter:
                 for rate_choice in rate_choices:
                     if rate_choice == "random":
                         rates.append(random.choice(station.supp_rates))
-                    else:
+                    elif rate_choice == "lowest":
                         rates.append(station.supp_rates[0])  
+                    elif rate_choice == "fastest":
+                        rates.append(station.supp_rates[-1])  
+                    elif rate_choice == "round_robin":
+                        rates.append(supp_rates[rate_idx])
+                        rate_idx += 1
+                        if rate_idx == len(supp_rates):
+                            rate_idx = 0
                         
                 first_rate = rates[0]
                 
