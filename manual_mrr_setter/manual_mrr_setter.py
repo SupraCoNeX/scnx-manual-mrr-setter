@@ -35,6 +35,9 @@ class ManualMRRSetter:
                 else:
                     logging.info("Waiting for at least one station on {ap.ap_id}")
                     await asyncio.sleep(0.01)
+                    for phy in self._ap.phys:
+                        self._ap.enable_manual_mode(phy)
+
             except KeyboardInterrupt:
                 break
         
@@ -53,7 +56,7 @@ class ManualMRRSetter:
         await self._wait_for_stations()
         
         for phy in self._ap.phys:
-            self._ap.reset_phy_stats(phy)
+            #self._ap.reset_phy_stats(phy)
             self._ap.enable_rc_info(phy)
             
         while True:
