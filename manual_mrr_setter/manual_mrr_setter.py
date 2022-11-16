@@ -35,10 +35,10 @@ class ManualMRRSetter:
                 else:
                     logging.info("Waiting for at least one station on {ap.ap_id}")
                     await asyncio.sleep(0.01)
-                    for phy in self._ap.phys:
-                        self._ap.enable_manual_mode(phy)
+                    for radio in self._ap.radios:
+                        self._ap.enable_manual_mode(radio)
 
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                 break
         
     async def execute_rate_setting(self):
@@ -50,14 +50,14 @@ class ManualMRRSetter:
         print("Starting Manual MRR Setter in User Space")        
        
         
-        for phy in self._ap.phys:
-            self._ap.enable_manual_mode(phy)
+        for radio in self._ap.radios:
+            self._ap.enable_manual_mode(radio)
             
         await self._wait_for_stations()
         
-        for phy in self._ap.phys:
-            #self._ap.reset_phy_stats(phy)
-            self._ap.enable_rc_info(phy)
+        for radio in self._ap.radios:
+            #self._ap.reset_radio_stats(radio)
+            self._ap.enable_rc_info(radio)
             
         while True:
             await asyncio.sleep(0.1)
@@ -68,7 +68,7 @@ class ManualMRRSetter:
                         
                         self._loop.create_task(self.set_rate(station), 
                                             name = f"rate_setter_{station.mac_addr}")
-            except KeyboardInterrupt:
+            except(KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                 break
     
     async def set_rate(self, station):   
@@ -103,7 +103,7 @@ class ManualMRRSetter:
                 airtime_first_rate = station.airtimes_ns[station.supp_rates.index(first_rate)]
                 weight = airtime_first_rate/fastest_airtime
                 
-                logging.info(f"Setting {rates} for {station.mac_addr} on {station.radio} for {self._interval_ns*weight*1e-6} milliseconds")
+                print(f"Setting {rates} for {station.mac_addr} on {station.radio} for {self._interval_ns*weight*1e-6} milliseconds")
                 
                 start_time = time.perf_counter_ns()
                 while True:
@@ -111,7 +111,8 @@ class ManualMRRSetter:
                     if (time.perf_counter_ns() - start_time) > self._interval_ns*weight:
                         break
                     await asyncio.sleep(0.001)
-            except KeyboardInterrupt:
+                    
+            except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                  break   
     
 async def start(ap, loop, **options):
