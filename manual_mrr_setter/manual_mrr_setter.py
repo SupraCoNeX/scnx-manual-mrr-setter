@@ -15,13 +15,14 @@ __all__ = [
 ]
 
 class ManualMRRSetter:
-    def __init__(self, ap, loop, **options):
+    def __init__(self, ap, loop, logger, **options):
 
         self._loop = loop
         self._ap = ap
         self._rc_stations = dict()
         self._interval_ns = options.get("interval_ns", 100e6)
         self._multi_rate_retry = options.get("multi_rate_retry", "lowest;1")
+        self._logger = logger
                 
     async def _wait_for_stations(self):
         """
@@ -33,7 +34,7 @@ class ManualMRRSetter:
                 if self._ap.get_stations():
                     break
                 else:
-                    logging.info("Waiting for at least one station on {ap.ap_id}")
+                    self._logger.debug(f"{self._ap.name}: Waiting for at least one station")
                     await asyncio.sleep(0.01)
                     for radio in self._ap.radios:
                         self._ap.enable_manual_mode(radio)
@@ -47,7 +48,7 @@ class ManualMRRSetter:
 
         """
         
-        print("Starting Manual MRR Setter in User Space")        
+        self._logger.info(f"{self._ap.name}: Starting Manual MRR Setter")        
        
         
         for radio in self._ap.radios:
@@ -56,7 +57,7 @@ class ManualMRRSetter:
         await self._wait_for_stations()
         
         for radio in self._ap.radios:
-            #self._ap.reset_radio_stats(radio)
+            self._ap.reset_radio_stats(radio)
             self._ap.enable_rc_info(radio)
             
         while True:
@@ -103,7 +104,7 @@ class ManualMRRSetter:
                 airtime_first_rate = station.airtimes_ns[station.supp_rates.index(first_rate)]
                 weight = airtime_first_rate/fastest_airtime
                 
-                print(f"Setting {rates} for {station.mac_addr} on {station.radio} for {self._interval_ns*weight*1e-6} milliseconds")
+                self._logger.debug(f"{self._ap.name}:{station.radio}:{station.mac_addr}: Setting {rates} for {self._interval_ns*weight*1e-6:.3f} ms")
                 
                 start_time = time.perf_counter_ns()
                 while True:
@@ -115,9 +116,9 @@ class ManualMRRSetter:
             except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                  break   
     
-async def start(ap, loop, **options):
+async def start(ap, loop, logger, **options):
     
-    rate_setter = ManualMRRSetter(ap, loop, **options)
+    rate_setter = ManualMRRSetter(ap, loop, logger, **options)
     await asyncio.sleep(0.1)
     await rate_setter.execute_rate_setting()
     
