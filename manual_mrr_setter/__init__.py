@@ -19,4 +19,3 @@ __version__ = "0.0.1"
 
 
 from .manual_mrr_setter import *
-
