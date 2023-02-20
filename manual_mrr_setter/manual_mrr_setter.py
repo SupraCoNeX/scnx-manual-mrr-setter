@@ -21,8 +21,8 @@ class ManualMRRSetter:
         self._ap = ap
         self._radio = radio
         self._rc_stations = dict()
-        self._interval_ns = options.get("interval_ns", 100e6)
-        self._multi_rate_retry = options.get("multi_rate_retry", "lowest;1")
+        self._interval_ns = options.get("interval_ns", 10e6)
+        self._multi_rate_retry = options.get("multi_rate_retry", "random;1")
         self._logger = ap.logger
 
     async def _wait_for_stations(self):
@@ -39,7 +39,6 @@ class ManualMRRSetter:
                         f"{self._ap.name}: Waiting for at least one station"
                     )
                     await asyncio.sleep(0.01)
-                    self._ap.enable_manual_mode(self._radio)
 
             except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                 break
@@ -51,6 +50,7 @@ class ManualMRRSetter:
         """
 
         self._logger.info(f"{self._ap.name}:{self._radio}: Starting Manual MRR Setter")
+        print(f"{self._ap.name}:{self._radio}: Starting Manual MRR Setter")
 
         await self._wait_for_stations()
         self._ap.reset_rate_stats(self._radio)
@@ -61,6 +61,9 @@ class ManualMRRSetter:
                 for mac_addr, station in self._ap.get_stations(self._radio).items():
                     if mac_addr not in self._rc_stations.keys():
                         self._rc_stations.update({mac_addr: station})
+                        print(
+                            f"Radio {station.radio}, Station {station.mac_addr}: Supported rates {station.supp_rates}"
+                        )
                         self._loop.create_task(
                             self.set_rate(station),
                             name=f"rate_setter_{station.mac_addr}",
@@ -111,8 +114,12 @@ class ManualMRRSetter:
                     if (
                         time.perf_counter_ns() - start_time
                     ) > self._interval_ns * weight:
+                        print(
+                            f"Radio {station.radio}, Station {station.mac_addr}: Counts {station.stats}"
+                        )
                         break
-                    await asyncio.sleep(0.01)
+
+                    await asyncio.sleep(0.001)
 
             except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
                 break
