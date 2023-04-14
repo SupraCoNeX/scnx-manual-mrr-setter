@@ -101,7 +101,7 @@ async def start(
                 elif r == "highest":
                     rates.append(sta.supp_rates[-1])
                 elif r in sta.supp_rates:
-                    rates.append(rates[mrr_stage])
+                    rates.append(r)
                 elif r == "round_robin":
                     try:
                         next_rate = next(rates_iter[mrr_stage])
