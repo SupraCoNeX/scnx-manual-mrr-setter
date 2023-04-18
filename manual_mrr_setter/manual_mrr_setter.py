@@ -29,6 +29,8 @@ import random
 import logging
 import copy
 
+import rateman
+
 __all__ = ["start"]
 
 def _parse_mrr(mrr: str) -> (list, list):
