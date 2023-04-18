@@ -124,5 +124,5 @@ async def start(
 
 			while time.perf_counter_ns() - start_time < interval * weight:
 				await asyncio.sleep(0)
-		except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
+		except asyncio.CancelledError:
 			break
