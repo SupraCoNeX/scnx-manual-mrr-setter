@@ -15,11 +15,11 @@ statistics is implied by the term 'manual' in the naming of this package.
 
 Example
 -------
-    To be added
+	To be added
 
 Notes
 -----
-    To be added
+	To be added
 
 """
 
@@ -32,25 +32,25 @@ import copy
 __all__ = ["start"]
 
 def _parse_mrr(mrr: str) -> (list, list):
-    """Parse MRR options.
+	"""Parse MRR options.
 
-    User defined MRR options are parsed to provide lists
-    rates and counts.
+	User defined MRR options are parsed to provide lists
+	rates and counts.
 
-    Parameters
-    ----------
-    mrr: str
-        Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
-        Note: len(rates_opts) == len(counts)
+	Parameters
+	----------
+	mrr: str
+		Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
+		Note: len(rates_opts) == len(counts)
 
-    Returns
-    -------
-    rates: list
-        Rate per MRR stage
-    counts: list
-        Maximum retry count per MRR stage
+	Returns
+	-------
+	rates: list
+		Rate per MRR stage
+	counts: list
+		Maximum retry count per MRR stage
 
-    """
+	"""
 
 	r,c = mrr.split(";")
 	rates = r.split(",")
@@ -62,24 +62,24 @@ def _parse_mrr(mrr: str) -> (list, list):
 	return rates, counts
 
 async def start(
-    ap: rateman.AccessPoint, sta: rateman.Station, logger=None, **options: dict
+	ap: rateman.AccessPoint, sta: rateman.Station, logger=None, **options: dict
 ):
-    """Manual-MRR-Setter.
+	"""Manual-MRR-Setter.
 
-    Parse MRR options and update interval and set rates accordingly.
+	Parse MRR options and update interval and set rates accordingly.
 
-    Parameters
-    ----------
-    ap: rateman.AccessPoint
-    sta: rateman.Station
-    logger: logging.Logger
-    options: dict
+	Parameters
+	----------
+	ap: rateman.AccessPoint
+	sta: rateman.Station
+	logger: logging.Logger
+	options: dict
 
-    Returns
-    -------
-        Nothing is returned. The function runs until terminated via RateMan externally.
+	Returns
+	-------
+		Nothing is returned. The function runs until terminated via RateMan externally.
 
-    """
+	"""
 
 	airtimes = copy.deepcopy(sta.airtimes_ns)
 	airtimes.sort()
