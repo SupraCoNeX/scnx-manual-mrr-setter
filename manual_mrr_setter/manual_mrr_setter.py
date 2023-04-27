@@ -98,20 +98,20 @@ async def start(
 		try:
 			for r in rates:
 				if r == "random":
-					mrr_rates.append(random.choice(sta.supp_rates))
+					mrr_rates.append(random.choice(sta.supported_rates))
 				elif r == "lowest":
-					mrr_rates.append(sta.supp_rates[0])
+					mrr_rates.append(sta.supported_rates[0])
 				elif r == "fastest":
-					mrr_rates.append(sta.supp_rates[-1])
+					mrr_rates.append(sta.supported_rates[-1])
 				elif r == "round_robin":
-					mrr_rates.append(sta.supp_rates[idx])
+					mrr_rates.append(sta.supported_rates[idx])
 					idx += 1
-					if idx == len(sta.supp_rates):
+					if idx == len(sta.supported_rates):
 						idx = 0
 				else:
 					raise ValueError(f"unknown rate designation: {r}")
 
-			first_airtime = sta.airtimes_ns[sta.supp_rates.index(mrr_rates[0])]
+			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
 			weight = first_airtime / airtimes[0]
 
 			log.debug(
