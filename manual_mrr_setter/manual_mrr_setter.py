@@ -31,7 +31,7 @@ import copy
 
 import rateman
 
-__all__ = ["start"]
+__all__ = ["configure", "start"]
 
 def _parse_mrr(mrr: str) -> (list, list):
 	"""Parse MRR options.
@@ -63,9 +63,10 @@ def _parse_mrr(mrr: str) -> (list, list):
 
 	return rates, counts
 
-async def start(
-	ap: rateman.AccessPoint, sta: rateman.Station, logger=None, **options: dict
-):
+def configure(sta: rateman.Station, logger=None, **options: dict):
+	return
+
+async def start(sta: rateman.Station, logger=None, **options: dict):
 	"""Manual-MRR-Setter.
 
 	Parse MRR options and update interval and set rates accordingly.
@@ -91,36 +92,36 @@ async def start(
 
 	idx = 0
 
-	log.info(f"{ap.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
+	log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
 	while True:
 		mrr_rates = []
 		try:
 			for r in rates:
 				if r == "random":
-					mrr_rates.append(random.choice(sta.supp_rates))
+					mrr_rates.append(random.choice(sta.supported_rates))
 				elif r == "lowest":
-					mrr_rates.append(sta.supp_rates[0])
+					mrr_rates.append(sta.supported_rates[0])
 				elif r == "fastest":
-					mrr_rates.append(sta.supp_rates[-1])
+					mrr_rates.append(sta.supported_rates[-1])
 				elif r == "round_robin":
-					mrr_rates.append(sta.supp_rates[idx])
+					mrr_rates.append(sta.supported_rates[idx])
 					idx += 1
-					if idx == len(sta.supp_rates):
+					if idx == len(sta.supported_rates):
 						idx = 0
 				else:
 					raise ValueError(f"unknown rate designation: {r}")
 
-			first_airtime = sta.airtimes_ns[sta.supp_rates.index(mrr_rates[0])]
+			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
 			weight = first_airtime / airtimes[0]
 
 			log.debug(
-				f"{ap.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
+				f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
 				f"for {interval * weight * 1e-6:.3f} ms"
 			)
 
 			start_time = time.perf_counter_ns()
-			ap.set_rate(sta.radio, sta.mac_addr, mrr_rates, counts)
+			sta.set_rates(mrr_rates, counts)
 
 			await asyncio.sleep(0) # make sure to always yield at least once
 
