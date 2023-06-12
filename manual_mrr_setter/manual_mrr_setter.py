@@ -98,19 +98,20 @@ async def start(sta: rateman.Station, logger=None, **options: dict):
 		mrr_rates = []
 		try:
 			for r in rates:
-				if r == "random":
-					mrr_rates.append(random.choice(sta.supported_rates))
-				elif r == "lowest":
-					mrr_rates.append(sta.supported_rates[0])
-				elif r == "fastest":
-					mrr_rates.append(sta.supported_rates[-1])
-				elif r == "round_robin":
-					mrr_rates.append(sta.supported_rates[idx])
-					idx += 1
-					if idx == len(sta.supported_rates):
-						idx = 0
-				else:
-					raise ValueError(f"unknown rate designation: {r}")
+				match r:
+					case "random":
+						mrr_rates.append(random.choice(sta.supported_rates))
+					case "lowest":
+						mrr_rates.append(sta.supported_rates[0])
+					case "fastest":
+						mrr_rates.append(sta.supported_rates[-1])
+					case "round_robin":
+						mrr_rates.append(sta.supported_rates[idx])
+						idx += 1
+						if idx == len(sta.supported_rates):
+							idx = 0
+					case _:
+						raise ValueError(f"unknown rate designation: {r}")
 
 			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
 			weight = first_airtime / airtimes[0]
