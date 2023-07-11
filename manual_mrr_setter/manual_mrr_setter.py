@@ -31,7 +31,8 @@ import copy
 
 import rateman
 
-__all__ = ["configure", "start"]
+__all__ = ["configure", "run"]
+
 
 def _parse_mrr(mrr: str) -> (list, list):
 	"""Parse MRR options.
@@ -63,35 +64,28 @@ def _parse_mrr(mrr: str) -> (list, list):
 
 	return rates, counts
 
-def configure(sta: rateman.Station, logger=None, **options: dict):
-	return
 
-async def start(sta: rateman.Station, logger=None, **options: dict):
-	"""Manual-MRR-Setter.
-
-	Parse MRR options and update interval and set rates accordingly.
-
-	Parameters
-	----------
-	ap: rateman.AccessPoint
-	sta: rateman.Station
-	logger: logging.Logger
-	options: dict
-
-	Returns
-	-------
-		Nothing is returned. The function runs until terminated via RateMan externally.
-
-	"""
+async def configure(sta: rateman.Station, **options: dict):
+	sta.set_manual_rc_mode(True)
+	sta.set_manual_tpc_mode(False)
 
 	airtimes = copy.deepcopy(sta.airtimes_ns)
 	airtimes.sort()
 	interval = options.get("update_interval_ns", 10_000_000)
 	rates, counts = _parse_mrr(options.get("multi_rate_retry", "random;1"))
-	log = logger if logger else logging.getLogger()
+	log = sta._log
+
+	return (sta, airtimes, interval, (rates, counts), log)
+
+
+async def run(args):
+	sta = args[0]
+	airtimes = args[1]
+	interval = args[2]
+	rates, counts = args[3][0], args[3][1]
+	log = args[4]
 
 	idx = 0
-
 	log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
 	while True:
