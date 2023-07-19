@@ -66,8 +66,8 @@ def _parse_mrr(mrr: str) -> (list, list):
 
 
 async def configure(sta: rateman.Station, **options: dict):
-	sta.set_manual_rc_mode(True)
-	sta.set_manual_tpc_mode(False)
+	await sta.set_manual_rc_mode(True)
+	await sta.set_manual_tpc_mode(False)
 
 	airtimes = copy.deepcopy(sta.airtimes_ns)
 	airtimes.sort()
@@ -116,7 +116,7 @@ async def run(args):
 			)
 
 			start_time = time.perf_counter_ns()
-			sta.set_rates(mrr_rates, counts)
+			await sta.set_rates(mrr_rates, counts)
 
 			await asyncio.sleep(0) # make sure to always yield at least once
 
