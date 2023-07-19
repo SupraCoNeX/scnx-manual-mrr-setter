@@ -15,11 +15,11 @@ statistics is implied by the term 'manual' in the naming of this package.
 
 Example
 -------
-    To be added
+	To be added
 
 Notes
 -----
-    To be added
+	To be added
 
 """
 
@@ -29,101 +29,98 @@ import random
 import logging
 import copy
 
-__all__ = ["start"]
+import rateman
+
+__all__ = ["configure", "run"]
 
 
 def _parse_mrr(mrr: str) -> (list, list):
-    """Parse MRR options.
+	"""Parse MRR options.
 
-    User defined MRR options are parsed to provide lists
-    rates and counts.
+	User defined MRR options are parsed to provide lists
+	rates and counts.
 
-    Parameters
-    ----------
-    mrr: str
-        Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
-        Note: len(rates_opts) == len(counts)
+	Parameters
+	----------
+	mrr: str
+		Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
+		Note: len(rates_opts) == len(counts)
 
-    Returns
-    -------
-    rates_opts: list
-        Rate options per MRR stage
-    counts: list
-        Maximum retry counts per MRR stage
+	Returns
+	-------
+	rates: list
+		Rate per MRR stage
+	counts: list
+		Maximum retry count per MRR stage
 
-    """
-    r, c = mrr.split(";")
-    rates_opts = r.split(",")
-    counts = [int(cnt, 16) for cnt in c.split(",")]
+	"""
 
-    if len(rates_opts) != len(counts):
-        raise ValueError("rates and counts must have the same length")
+	r,c = mrr.split(";")
+	rates = r.split(",")
+	counts = [int(cnt, 16) for cnt in c.split(",")]
 
-    return rates_opts, counts
+	if len(rates) != len(counts):
+		raise ValueError("rates and counts must have the same length")
+
+	return rates, counts
 
 
-async def start(
-    ap: rateman.AccessPoint, sta: rateman.Station, logger=None, **options: dict
-):
-    """Manual-MRR-Setter Start.
+async def configure(sta: rateman.Station, **options: dict):
+	await sta.set_manual_rc_mode(True)
+	await sta.set_manual_tpc_mode(False)
 
-    This is the main asyncio function that deals with parsing MRR options as well as the update interval,
-    and setting of MRR chain per update interval.
+	airtimes = copy.deepcopy(sta.airtimes_ns)
+	airtimes.sort()
+	interval = options.get("update_interval_ns", 10_000_000)
+	rates, counts = _parse_mrr(options.get("multi_rate_retry", "random;1"))
+	log = sta._log
 
-    Parameters
-    ----------
-    ap: rateman.AccessPoint
-    sta: rateman.Station
-    logger: logging.Logger
-    options: dict
+	return (sta, airtimes, interval, (rates, counts), log)
 
-    Returns
-    -------
-        Nothing is returned. The function runs until terminated via RateMan externally.
 
-    """
-    airtimes = copy.deepcopy(sta.airtimes_ns)
-    airtimes.sort()
-    interval = options.get("update_interval_ns", 10_000_000)
-    rates_opts, counts = _parse_mrr(options.get("multi_rate_retry", "random;1"))
-    log = logger if logger else logging.getLogger()
-    rates_iter = [iter(sta.supp_rates) for _ in range(len(rates_opts))]
-    log.debug(f"{ap.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
+async def run(args):
+	sta = args[0]
+	airtimes = args[1]
+	interval = args[2]
+	rates, counts = args[3][0], args[3][1]
+	log = args[4]
 
-    while True:
-        rates = []
-        try:
-            for mrr_stage, r in enumerate(rates_opts):
-                if r == "random":
-                    rates.append(random.choice(sta.supp_rates))
-                elif r == "lowest":
-                    rates.append(sta.supp_rates[0])
-                elif r == "highest":
-                    rates.append(sta.supp_rates[-1])
-                elif r in sta.supp_rates:
-                    rates.append(r)
-                elif r == "round_robin":
-                    try:
-                        next_rate = next(rates_iter[mrr_stage])
-                    except StopIteration:
-                        rates_iter[mrr_stage] = iter(sta.supp_rates)
-                        next_rate = next(rates_iter[mrr_stage])
-                    rates.append(next_rate)
-                else:
-                    raise ValueError(f"unknown rate designation: {r}")
+	idx = 0
+	log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
-            first_airtime = sta.airtimes_ns[sta.supp_rates.index(rates[0])]
-            weight = first_airtime / airtimes[0]
+	while True:
+		mrr_rates = []
+		try:
+			for r in rates:
+				match r:
+					case "random":
+						mrr_rates.append(random.choice(sta.supported_rates))
+					case "lowest":
+						mrr_rates.append(sta.supported_rates[0])
+					case "fastest":
+						mrr_rates.append(sta.supported_rates[-1])
+					case "round_robin":
+						mrr_rates.append(sta.supported_rates[idx])
+						idx += 1
+						if idx == len(sta.supported_rates):
+							idx = 0
+					case _:
+						raise ValueError(f"unknown rate designation: {r}")
 
-            log.info(
-                f"{ap.name}:{sta.radio}:{sta.mac_addr}: Setting {rates} "
-                f"for {interval*weight*1e-6:.3f} ms"
-            )
+			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
+			weight = first_airtime / airtimes[0]
 
-            await asyncio.sleep(0)
-            start_time = time.perf_counter_ns()
-            ap.set_rate(sta.radio, sta.mac_addr, rates, counts)
-            while time.perf_counter_ns() - start_time < interval * weight:
-                await asyncio.sleep(0)
-        except (KeyboardInterrupt, OSError, IOError, asyncio.CancelledError):
-            break
+			log.debug(
+				f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
+				f"for {interval * weight * 1e-6:.3f} ms"
+			)
+
+			start_time = time.perf_counter_ns()
+			await sta.set_rates(mrr_rates, counts)
+
+			await asyncio.sleep(0) # make sure to always yield at least once
+
+			while time.perf_counter_ns() - start_time < interval * weight:
+				await asyncio.sleep(0)
+		except asyncio.CancelledError:
+			break
