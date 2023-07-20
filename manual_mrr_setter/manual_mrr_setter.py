@@ -90,10 +90,6 @@ def _parse_mrr(mrr: str) -> (list, list):
 
 
 async def configure(sta: rateman.Station, **options: dict):
-<<<<<<< HEAD
-	await sta.set_manual_rc_mode(True)
-	await sta.set_manual_tpc_mode(False)
-=======
 	"""
 	Configure station to perform manual MRR chain setting. <Actual configuration steps>
 
@@ -120,7 +116,6 @@ async def configure(sta: rateman.Station, **options: dict):
 
 	sta.set_manual_rc_mode(True)
 	sta.set_manual_tpc_mode(False)
->>>>>>> 6eaa75e (draft documentation)
 
 	airtimes = copy.deepcopy(sta.airtimes_ns)
 	airtimes.sort()
