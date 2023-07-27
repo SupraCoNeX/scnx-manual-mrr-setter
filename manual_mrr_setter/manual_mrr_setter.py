@@ -95,7 +95,7 @@ async def run(args):
 				match r:
 					case "random":
 						mrr_rates.append(random.choice(sta.supported_rates))
-					case "lowest":
+					case "slowest":
 						mrr_rates.append(sta.supported_rates[0])
 					case "fastest":
 						mrr_rates.append(sta.supported_rates[-1])
