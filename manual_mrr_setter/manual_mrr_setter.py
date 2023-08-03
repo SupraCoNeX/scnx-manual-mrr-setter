@@ -54,132 +54,146 @@ import random
 import copy
 import logging
 import rateman
+from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
 
 
 def _parse_mrr(mrr: str) -> (list, list):
-	"""Parse MRR options.
+    """Parse MRR options.
 
-	User defined MRR options are parsed to provide lists
-	rates and counts.
+    User defined MRR options are parsed to provide lists
+    rates and counts.
 
-	Parameters
-	----------
-	mrr: str
-		Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
-		Note: len(rates_opts) == len(counts)
+    Parameters
+    ----------
+    mrr: str
+            Format `rate-idx-1, rate-idx-2,...,rate-idx-max_mrr_stage; count-1, count-2,...,count-max_mrr_stage`.
+            Note: len(rates_opts) == len(counts)
 
-	Returns
-	-------
-	rates: list
-		Rate per MRR stage
-	counts: list
-		Maximum retry count per MRR stage
+    Returns
+    -------
+    rates: list
+            Rate per MRR stage
+    counts: list
+            Maximum retry count per MRR stage
 
-	"""
+    """
 
-	r,c = mrr.split(";")
-	rates = r.split(",")
-	counts = [int(cnt, 16) for cnt in c.split(",")]
+    r, c = mrr.split(";")
+    rates = r.split(",")
+    counts = [int(cnt, 16) for cnt in c.split(",")]
 
-	if len(rates) != len(counts):
-		raise ValueError("rates and counts must have the same length")
+    if len(rates) != len(counts):
+        raise ValueError("rates and counts must have the same length")
 
-	return rates, counts
+    return rates, counts
 
 
 async def configure(sta: rateman.Station, **options: dict):
-	"""
-	Configure station to perform manual MRR chain setting. <Actual configuration steps>
+    """
+    Configure station to perform manual MRR chain setting. <Actual configuration steps>
 
-	Parameters
-	----------
-	sta: rateman.Station
-		Station object based on rateman abstraction.
-	options: dict
-		MRR chain setting options list in module description.
+    Parameters
+    ----------
+    sta: rateman.Station
+            Station object based on rateman abstraction.
+    options: dict
+            MRR chain setting options list in module description.
 
-	Returns
-	-------
-	sta: rateman.Station
-	airtimes: list
-		Transmission airtimes in nanosecond for MCS data supported by station, sorted in ascending order.
-	interval: int
-		Update interval for setting a given MRR chain in nanosecond.
-	(rates, counts): tuple
-		Rate options and their corresponding counts to be used MRR chain setting.
-	log: logging.Logger
-		For logging MRR setting events.
+    Returns
+    -------
+    sta: rateman.Station
+    airtimes: list
+            Transmission airtimes in nanosecond for MCS data supported by station, sorted in ascending order.
+    interval: int
+            Update interval for setting a given MRR chain in nanosecond.
+    (rates, counts): tuple
+            Rate options and their corresponding counts to be used MRR chain setting.
+    log: logging.Logger
+            For logging MRR setting events.
 
-	"""
+    """
 
-	sta.set_manual_rc_mode(True)
-	sta.set_manual_tpc_mode(False)
+    await sta.set_manual_rc_mode(True)
+    await sta.set_manual_tpc_mode(True)
+    await sta.reset_kernel_rate_stats()
+    sta.reset_rate_stats()
 
-	airtimes = copy.deepcopy(sta.airtimes_ns)
-	airtimes.sort()
-	interval = options.get("update_interval_ns", 10_000_000)
-	rates, counts = _parse_mrr(options.get("multi_rate_retry", "random;1"))
-	log = sta._log
+    airtimes = copy.deepcopy(sta.airtimes_ns)
+    airtimes.sort()
+    interval = options.get("update_interval_ns", 10_000_000)
+    rates, counts = _parse_mrr(options.get("multi_rate_retry", "random;1"))
+    log = sta._log
+    rate_table = RateStatistics(sta)
 
-	return sta, airtimes, interval, (rates, counts), log
+    return sta, airtimes, interval, (rates, counts), log, rate_table
 
 
 async def run(args):
-	"""
-	Run Manual MRR Setter.
+    """
+    Run Manual MRR Setter.
 
-	Parameters
-	----------
-	args: dict
-		Returned from manual_mrr_setter.configure().
+    Parameters
+    ----------
+    args: dict
+            Returned from manual_mrr_setter.configure().
 
-	Returns
-	-------
+    Returns
+    -------
 
-	"""
-	sta = args[0]
-	airtimes = args[1]
-	interval = args[2]
-	rates, counts = args[3][0], args[3][1]
-	log = args[4]
-	idx = 0
-	log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
+    """
+    sta = args[0]
+    airtimes = args[1]
+    interval = args[2]
+    rates, counts = args[3][0], args[3][1]
+    log = args[4]
+    rate_table = args[5]
+    idx = 0
+    log.info(
+        f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter"
+    )
 
-	while True:
-		mrr_rates = []
-		try:
-			for r in rates:
-				match r:
-					case "random":
-						mrr_rates.append(random.choice(sta.supported_rates))
-					case "lowest":
-						mrr_rates.append(sta.supported_rates[0])
-					case "fastest":
-						mrr_rates.append(sta.supported_rates[-1])
-					case "round_robin":
-						mrr_rates.append(sta.supported_rates[idx])
-						idx += 1
-						if idx == len(sta.supported_rates):
-							idx = 0
-					case _:
-						raise ValueError(f"unknown rate designation: {r}")
+    while True:
+        mrr_rates = []
+        try:
+            for r in rates:
+                match r:
+                    case "random":
+                        mrr_rates.append(random.choice(sta.supported_rates))
+                    case "lowest":
+                        mrr_rates.append(sta.supported_rates[0])
+                    case "fastest":
+                        mrr_rates.append(sta.supported_rates[-1])
+                    case "round_robin":
+                        mrr_rates.append(sta.supported_rates[idx])
+                        idx += 1
+                        if idx == len(sta.supported_rates):
+                            idx = 0
+                    case _:
+                        raise ValueError(f"unknown rate designation: {r}")
 
-			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
-			weight = first_airtime / airtimes[0]
+            first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
+            weight = first_airtime / airtimes[0]
 
-			log.debug(
-				f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
-				f"for {interval * weight * 1e-6:.3f} ms"
-			)
+            log.debug(
+                f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
+                f"for {interval * weight * 1e-6:.3f} ms"
+            )
 
-			start_time = time.perf_counter_ns()
-			await sta.set_rates(mrr_rates, counts)
+            start_time = time.perf_counter_ns()
+            txpowers = [10.0]
 
-			await asyncio.sleep(0) # make sure to always yield at least once
+            await sta.set_rates_and_power(mrr_rates, counts, txpowers)
+            await asyncio.sleep(0)  # make sure to always yield at least once
 
-			while time.perf_counter_ns() - start_time < interval * weight:
-				await asyncio.sleep(0)
-		except asyncio.CancelledError:
-			break
+            while time.perf_counter_ns() - start_time < interval * weight:
+                await asyncio.sleep(0)
+
+            # rate_table.analyze_stats(sta.last_seen, sta.stats)
+            rate_table.update(sta.last_seen, sta.stats)
+            rate_table.print_stats()
+
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            rate_table._output_file.close()
+            break
