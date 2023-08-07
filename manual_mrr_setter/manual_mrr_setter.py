@@ -90,37 +90,34 @@ async def run(args):
 
 	while True:
 		mrr_rates = []
-		try:
-			for r in rates:
-				match r:
-					case "random":
-						mrr_rates.append(random.choice(sta.supported_rates))
-					case "slowest":
-						mrr_rates.append(sta.supported_rates[0])
-					case "fastest":
-						mrr_rates.append(sta.supported_rates[-1])
-					case "round_robin":
-						mrr_rates.append(sta.supported_rates[idx])
-						idx += 1
-						if idx == len(sta.supported_rates):
-							idx = 0
-					case _:
-						raise ValueError(f"unknown rate designation: {r}")
+		for r in rates:
+			match r:
+				case "random":
+					mrr_rates.append(random.choice(sta.supported_rates))
+				case "slowest":
+					mrr_rates.append(sta.supported_rates[0])
+				case "fastest":
+					mrr_rates.append(sta.supported_rates[-1])
+				case "round_robin":
+					mrr_rates.append(sta.supported_rates[idx])
+					idx += 1
+					if idx == len(sta.supported_rates):
+						idx = 0
+				case _:
+					raise ValueError(f"unknown rate designation: {r}")
 
-			first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
-			weight = first_airtime / airtimes[0]
+		first_airtime = sta.airtimes_ns[sta.supported_rates.index(mrr_rates[0])]
+		weight = first_airtime / airtimes[0]
 
-			log.debug(
-				f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
-				f"for {interval * weight * 1e-6:.3f} ms"
-			)
+		log.debug(
+			f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting {mrr_rates} "
+			f"for {interval * weight * 1e-6:.3f} ms"
+		)
 
-			start_time = time.perf_counter_ns()
-			await sta.set_rates(mrr_rates, counts)
+		start_time = time.perf_counter_ns()
+		await sta.set_rates(mrr_rates, counts)
 
-			await asyncio.sleep(0) # make sure to always yield at least once
+		await asyncio.sleep(0.0001) # make sure to always yield at least once
 
-			while time.perf_counter_ns() - start_time < interval * weight:
-				await asyncio.sleep(0)
-		except asyncio.CancelledError:
-			break
+		while time.perf_counter_ns() - start_time < interval * weight:
+			await asyncio.sleep(0.0001)
