@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>manual_mrr_setter package &#8212; Manual MRR Chain Setter 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="manual_mrr_setter" href="modules.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="manual-mrr-setter-package">
+<h1>manual_mrr_setter package<a class="headerlink" href="#manual-mrr-setter-package" title="Permalink to this heading">¶</a></h1>
+<section id="module-manual_mrr_setter.manual_mrr_setter">
+<span id="manual-mrr-setter-module"></span><h2>manual_mrr_setter module<a class="headerlink" href="#module-manual_mrr_setter.manual_mrr_setter" title="Permalink to this heading">¶</a></h2>
+<p>SCNX Manual MRR Setter</p>
+<p>This module contains the functions required to set the Multi-Rate-Retry (MRR)
+chain for the transmission of frame based on the ORCA toolset.
+A controller device uses a <cite>rateman.RateMan</cite> object to annotate rates
+and counts of the MRR via the Manual-MRR-Setter. Generally, resource control
+algorithm derive statistics based on which resource control decisions are
+performed. Direct setting the rates and counts without any analysis of
+statistics is implied by the term ‘manual’ in the naming of this package.</p>
+<p><strong>Rate Control Options</strong></p>
+<p>Options for MRR chain setting are described within a dictionary. Default options,</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>multi_rate_retry:<span class="w"> </span><span class="s1">&#39;random;1&#39;</span>
+update_interval_ns:<span class="w"> </span>10_000_000
+</pre></div>
+</div>
+<ol class="arabic">
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">multi_rate_retry</span></code></dt><dd><p>Per MRR stage the rate and count options can be specific using this option.</p>
+<dl class="simple">
+<dt><strong>rate options per MRR stage</strong></dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">lowest</span></code>: Select the lowest theoretical throughput rate supported by the station.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fastest</span></code>: Select the highest theoretical throughput rate supported by the station.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">random</span></code>: Select a random rate out of the all rates supported by the station.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">round_robin</span></code>: Select a consecutive rate out of the all rates supported by the station in a round robin manner.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rate-idx</span></code>: Select a known fixed rate index that belongs to the set of rates supported by the station. This index is required to be in the format defined by the ORCA &lt; add link &gt;</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">update_interval_ns</span></code></dt><dd><p>Update interval defines the time duration for which a give MRR setting use applied. This value is providing in nano seconds unit.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<p class="rubric">Examples</p>
+<ol class="arabic simple">
+<li><p>options = <code class="docutils literal notranslate"><span class="pre">{&quot;multi_rate_retry&quot;:&quot;lowest;1&quot;}</span></code> will set the MRR with the lowest supported rate with count 1. Update interval used is 10e6 ns.</p></li>
+<li><p>options = <code class="docutils literal notranslate"><span class="pre">{&quot;multi_rate_retry&quot;:&quot;random,lowest;4,1&quot;}</span></code> will set a randomly chosen rate in the first MRR stage and the lowest supported rate in the second, with counts 4 and 1 respectively. Update interval used is 10e6 ns.</p></li>
+<li><p>options = <code class="docutils literal notranslate"><span class="pre">{&quot;multi_rate_retry&quot;:&quot;round_robin,</span> <span class="pre">highest;5,2&quot;}</span></code> will set consecutive rates the first MRR stage from the set of supported rated in a round robin manner with count 5, while the second stage is set with the highest supported rate with count 2. Update interval used is 10e6 ns.</p></li>
+<li><p>options = <code class="docutils literal notranslate"><span class="pre">{&quot;update_interval_ns&quot;:50e6}</span></code> will set a randomly chosen rate in the first MRR stage with count 1. Update interval used is 50e6 ns.</p></li>
+</ol>
+<dl class="py function">
+<dt class="sig sig-object py" id="manual_mrr_setter.manual_mrr_setter.configure">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">manual_mrr_setter.manual_mrr_setter.</span></span><span class="sig-name descname"><span class="pre">configure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Station</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#manual_mrr_setter.manual_mrr_setter.configure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configure station to perform manual MRR chain setting. &lt;Actual configuration steps&gt;</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sta</strong> (<em>rateman.Station</em>) – Station object based on rateman abstraction.</p></li>
+<li><p><strong>options</strong> (<em>dict</em>) – MRR chain setting options list in module description.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>sta</strong> (<em>rateman.Station</em>)</p></li>
+<li><p><strong>airtimes</strong> (<em>list</em>) – Transmission airtimes in nanosecond for MCS data supported by station, sorted in ascending order.</p></li>
+<li><p><strong>interval</strong> (<em>int</em>) – Update interval for setting a given MRR chain in nanosecond.</p></li>
+<li><p><strong>(rates, counts)</strong> (<em>tuple</em>) – Rate options and their corresponding counts to be used MRR chain setting.</p></li>
+<li><p><strong>log</strong> (<em>logging.Logger</em>) – For logging MRR setting events.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="manual_mrr_setter.manual_mrr_setter.run">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">manual_mrr_setter.manual_mrr_setter.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#manual_mrr_setter.manual_mrr_setter.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run Manual MRR Setter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>dict</em>) – Returned from manual_mrr_setter.configure().</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Manual MRR Chain Setter</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Modules:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">manual_mrr_setter</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">manual_mrr_setter</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">manual_mrr_setter</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, SupraCoNeX.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/manual_mrr_setter.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
