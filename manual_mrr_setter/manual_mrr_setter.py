@@ -199,18 +199,17 @@ async def run(args):
                         mrr_txpowers.append(supported_txpowers[-1])
                     elif txpowers[mrr_stage]=="round_robin":
                         mrr_txpowers.append(supported_txpowers[idx_txpower])
-                        if r == "round_robin":
-                            mrr_rates.append(supported_rates[idx_rate])
-                            if idx_txpower==0:
-                                idx_rate = (idx_rate + 1) % len(supported_rates)
                         idx_txpower=(idx_txpower+1)%len(supported_txpowers)
-
                     elif float(txpowers[mrr_stage]) in supported_txpowers:
                         mrr_txpowers.append(float(txpowers[mrr_stage]))
 
-                elif r == "round_robin":
+                if r == "round_robin":
                     mrr_rates.append(supported_rates[idx_rate])
-                    idx_rate = (idx_rate + 1) % len(supported_rates)
+                    if control_type=="tpc":
+                        if txpowers[mrr_stage] !="round_robin":
+                            idx_rate=(idx_rate+1)%len(supported_rates)
+                        elif txpowers[mrr_stage]=="round_robin" and idx_txpower==0:
+                            idx_rate = (idx_rate + 1) % len(supported_rates)
 
             first_airtime = sta.airtimes_ns[supported_rates.index(mrr_rates[0])]
             weight = first_airtime / airtimes[0]
@@ -233,6 +232,8 @@ async def run(args):
                 await sta.set_rates_and_power(mrr_rates, counts, mrr_txpowers)
             else:
                 await sta.set_rates(mrr_rates, counts)
+
+            await asyncio.sleep(0)
 
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
