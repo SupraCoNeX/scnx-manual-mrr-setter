@@ -24,7 +24,7 @@ class RateStatistics:
         # )
 
         self._output_file = open(
-            f"/home/sankalp/PhD/1_ResourceAllocation/1_Code/dev-tests/manual-mrr-setter/temp-stats-output_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+            f"/home/sankalp/PhD/1_ResourceAllocation/1_Code/dev_tests/manual-mrr-setter/temp-stats-output_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.txt",
             "a",
         )
 
