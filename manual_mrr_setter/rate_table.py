@@ -8,25 +8,24 @@
 This module contains functions to derive a table of statistics for rate and power used for packet transmission.
 """
 import datetime
+import os
 
 __all__ = ["RateStatistics"]
 
 
 class RateStatistics:
-    def __init__(self, sta):
+    def __init__(self, sta, output_dir=None):
         self._init_stats(sta.stats)
         self._last_updated = dict()
         self._last_updated["timestamp"] = sta.last_seen
         self._last_updated["rates"] = []
-        # self._stats = dict.fromkeys(
-        #     list(sta.stats.keys()),
-        #     dict.fromkeys(list(list(sta.stats.values())[0].keys()), {"timestamp": 0}),
-        # )
+        self._ap_name = sta.accesspoint.name
+        self._radio = sta.radio
+        self._sta_name = sta.name
 
-        self._output_file = open(
-            f"/home/sankalp/PhD/1_ResourceAllocation/1_Code/dev_tests/manual-mrr-setter/temp-stats-output_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.txt",
-            "a",
-        )
+        if output_dir:
+            self._msmt_dir = output_dir
+            self._setup_output_directory()
 
     def _init_stats(self, sta_stats):
         self._stats = dict()
@@ -160,5 +159,21 @@ class RateStatistics:
     def best_rates_throughput(self):
         pass
 
-    def _setup_log(self):
-        pass
+    def _setup_output_file(self):
+        """
+        Creates all the required folders to store the rate control output
+        files such as rc_stats and rc_stats_csv.
+
+        """
+        output_file_path = os.path.join(
+            self._msmt_dir,
+            "mmrrs_rate_statistics",
+            self._ap_name,
+            self._radio,
+            self._sta_name.replace(":", "-"),
+            "mmrrs_rate_statistics.txt",
+        )
+
+        os.makedirs(output_file_path, exist_ok=True)
+        self._output_file_path = output_file_path
+        self._output_file = open(self._output_file_path, "w")

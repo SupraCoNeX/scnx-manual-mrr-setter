@@ -107,6 +107,7 @@ def _parse_mrr(mrr: str, control_type) -> (list, list):
 
     return rates, counts, txpowers
 
+
 async def configure(sta: rateman.Station, **options: dict):
     """
     Configure station to perform manual MRR chain setting. <Actual configuration steps>
@@ -136,8 +137,11 @@ async def configure(sta: rateman.Station, **options: dict):
     airtimes.sort()
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
+    save_statistics = options.get("save_stats", False)
 
-    rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "random;1"), control_type)
+    rates, counts, txpowers = _parse_mrr(
+        options.get("multi_rate_retry", "random;1"), control_type
+    )
     log = sta.log
 
     await sta.set_manual_rc_mode(True)
@@ -148,9 +152,22 @@ async def configure(sta: rateman.Station, **options: dict):
 
     await sta.reset_kernel_rate_stats()
     sta.reset_rate_stats()
-    rate_table = RateStatistics(sta)
 
-    return sta, control_type, airtimes, interval, (rates, counts, txpowers), log, rate_table
+    if save_statistics:
+        rate_table = RateStatistics(sta, options.get("data_dir", "."))
+    else:
+        rate_table = RateStatistics(sta)
+
+    return (
+        sta,
+        control_type,
+        airtimes,
+        interval,
+        (rates, counts, txpowers),
+        log,
+        rate_table,
+    )
+
 
 async def run(args):
     """
@@ -165,7 +182,15 @@ async def run(args):
     -------
 
     """
-    sta, control_type, airtimes, interval, (rates, counts, txpowers), log, rate_table = args
+    (
+        sta,
+        control_type,
+        airtimes,
+        interval,
+        (rates, counts, txpowers),
+        log,
+        rate_table,
+    ) = args
     supported_rates = sta.supported_rates
     supported_txpowers = sta.accesspoint.txpowers(sta.radio)
     idx_txpower = 0
@@ -197,19 +222,21 @@ async def run(args):
                         mrr_txpowers.append(supported_txpowers[0])
                     elif txpowers[mrr_stage] == "highest":
                         mrr_txpowers.append(supported_txpowers[-1])
-                    elif txpowers[mrr_stage]=="round_robin":
+                    elif txpowers[mrr_stage] == "round_robin":
                         mrr_txpowers.append(supported_txpowers[idx_txpower])
-                        idx_txpower=(idx_txpower+1)%len(supported_txpowers)
+                        idx_txpower = (idx_txpower + 1) % len(supported_txpowers)
                     elif float(txpowers[mrr_stage]) in supported_txpowers:
                         mrr_txpowers.append(float(txpowers[mrr_stage]))
 
                 if r == "round_robin":
                     mrr_rates.append(supported_rates[idx_rate])
-                    if control_type=="tpc":
-                        if txpowers[mrr_stage] !="round_robin":
-                            idx_rate=(idx_rate+1)%len(supported_rates)
-                        elif txpowers[mrr_stage]=="round_robin" and idx_txpower==0:
+                    if control_type == "tpc":
+                        if txpowers[mrr_stage] != "round_robin":
                             idx_rate = (idx_rate + 1) % len(supported_rates)
+                        elif txpowers[mrr_stage] == "round_robin" and idx_txpower == 0:
+                            idx_rate = (idx_rate + 1) % len(supported_rates)
+                    else:
+                        idx_rate = (idx_rate + 1) % len(supported_rates)
 
             first_airtime = sta.airtimes_ns[supported_rates.index(mrr_rates[0])]
             weight = first_airtime / airtimes[0]
