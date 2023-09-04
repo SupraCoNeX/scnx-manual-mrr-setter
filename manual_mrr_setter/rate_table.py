@@ -14,18 +14,24 @@ __all__ = ["RateStatistics"]
 
 
 class RateStatistics:
-    def __init__(self, sta, output_dir=None):
+    def __init__(self, sta, save_statistics=False, output_dir=None):
         self._init_stats(sta.stats)
         self._last_updated = dict()
         self._last_updated["timestamp"] = sta.last_seen
         self._last_updated["rates"] = []
         self._ap_name = sta.accesspoint.name
         self._radio = sta.radio
-        self._sta_name = sta.name
+        self._sta_name = sta.mac_addr
+        self._save_statistics = save_statistics
 
-        if output_dir:
-            self._msmt_dir = output_dir
-            self._setup_output_directory()
+        if save_statistics:
+            self._msmt_dir = output_dir if output_dir else os.getcwd()
+            self._setup_output_file()
+
+
+    @property
+    def save_statistics(self):
+        return self._save_statistics
 
     def _init_stats(self, sta_stats):
         self._stats = dict()
@@ -127,10 +133,13 @@ class RateStatistics:
 
         self._last_updated["timestamp"] = timestamp
 
+        if self._save_statistics:
+            self._print_stats()
+
     def get_stats(self):
         return self._stats
 
-    def print_stats(self):
+    def _print_stats(self):
         # self._output_file.write("%%%---------------------%%%\n")
         self._output_file.write(
             f"%%-------Updated Rates {hex(self._last_updated['timestamp'])}----------%%\n"

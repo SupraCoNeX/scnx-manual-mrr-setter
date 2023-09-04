@@ -208,7 +208,7 @@ async def run(args):
             for mrr_stage, r in enumerate(rates):
                 if r == "random":
                     mrr_rates.append(random.choice(supported_rates))
-                elif r == "lowest":
+                elif r == "slowest":
                     mrr_rates.append(supported_rates[0])
                 elif r == "fastest":
                     mrr_rates.append(supported_rates[-1])
@@ -218,7 +218,7 @@ async def run(args):
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
                         mrr_txpowers.append(random.choice(supported_txpowers))
-                    elif txpowers[mrr_stage] == "lowest":
+                    elif txpowers[mrr_stage] == "slowest":
                         mrr_txpowers.append(supported_txpowers[0])
                     elif txpowers[mrr_stage] == "highest":
                         mrr_txpowers.append(supported_txpowers[-1])
@@ -266,8 +266,8 @@ async def run(args):
                 await asyncio.sleep(0.001)
 
             rate_table.update(sta.last_seen, sta.stats)
-            rate_table.print_stats()
 
         except asyncio.CancelledError:
-            rate_table._output_file.close()
+            if rate_table.save_statistics:
+                rate_table._output_file.close()
             break
