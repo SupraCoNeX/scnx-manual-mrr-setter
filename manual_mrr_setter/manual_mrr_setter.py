@@ -13,6 +13,7 @@ algorithm derive statistics based on which resource control decisions are
 performed. Direct setting the rates and counts without any analysis of
 statistics is implied by the term 'manual' in the naming of this package.
 
+=======
 **Rate Control Options**
 
 Options for MRR chain setting are described within a dictionary. Default options,
@@ -53,7 +54,6 @@ supported rate with count 2. Update interval used is 10e6 ns.
 Update interval used is 50e6 ns.
 
 
-
 """
 
 import asyncio
@@ -65,7 +65,6 @@ import rateman
 from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
-
 
 def _parse_mrr(mrr: str, control_type) -> (list, list):
     """Parse MRR options.
