@@ -132,8 +132,7 @@ async def configure(sta: rateman.Station, **options: dict):
 
     """
 
-    airtimes = copy.deepcopy(sta.airtimes_ns)
-    airtimes.sort()
+    airtimes = sorted([sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
     save_statistics = options.get("save_stats", False)
@@ -237,7 +236,7 @@ async def run(args):
                     else:
                         idx_rate = (idx_rate + 1) % len(supported_rates)
 
-            first_airtime = sta.airtimes_ns[supported_rates.index(mrr_rates[0])]
+            first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])["airtime"]
             weight = first_airtime / airtimes[0]
 
             if control_type == "tpc":
