@@ -152,7 +152,7 @@ async def configure(sta: rateman.Station, **options: dict):
     sta.reset_rate_stats()
 
     if save_statistics:
-        rate_table = RateStatistics(sta, options.get("data_dir", "."))
+        rate_table = RateStatistics(sta, save_statistics, options.get("data_dir", "."))
     else:
         rate_table = RateStatistics(sta)
 
@@ -216,7 +216,7 @@ async def run(args):
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
                         mrr_txpowers.append(random.choice(supported_txpowers))
-                    elif txpowers[mrr_stage] == "slowest":
+                    elif txpowers[mrr_stage] == "lowest":
                         mrr_txpowers.append(supported_txpowers[0])
                     elif txpowers[mrr_stage] == "highest":
                         mrr_txpowers.append(supported_txpowers[-1])

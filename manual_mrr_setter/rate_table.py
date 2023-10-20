@@ -23,7 +23,6 @@ class RateStatistics:
         self._radio = sta.radio
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
-
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
@@ -140,7 +139,6 @@ class RateStatistics:
         return self._stats
 
     def _print_stats(self):
-        # self._output_file.write("%%%---------------------%%%\n")
         self._output_file.write(
             f"%%-------Updated Rates {hex(self._last_updated['timestamp'])}----------%%\n"
         )
@@ -151,8 +149,6 @@ class RateStatistics:
                 f"hist_attempts {self._stats[rate][txpower]['hist_attempts']},  "
                 f"hist_success {self._stats[rate][txpower]['hist_success']} \n"
             )
-        # print("%%-------Best Rates by Success Probability----------%%\n")
-        # print("%%-------Best Rates by Success Probability----------%%\n")
 
     def best_rates_success_prob(self):
         best_rates = []
@@ -174,15 +170,14 @@ class RateStatistics:
         files such as rc_stats and rc_stats_csv.
 
         """
-        output_file_path = os.path.join(
+        output_file_dir = os.path.join(
             self._msmt_dir,
             "mmrrs_rate_statistics",
             self._ap_name,
             self._radio,
-            self._sta_name.replace(":", "-"),
-            "mmrrs_rate_statistics.txt",
+            self._sta_name.replace(":", "-")
         )
 
-        os.makedirs(output_file_path, exist_ok=True)
-        self._output_file_path = output_file_path
+        os.makedirs(output_file_dir, exist_ok=True)
+        self._output_file_path = os.path.join(output_file_dir, "rate_stats")
         self._output_file = open(self._output_file_path, "w")
