@@ -135,7 +135,7 @@ async def configure(sta: rateman.Station, **options: dict):
     airtimes = sorted([sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
-    rate_duration = option.get("rate_duration", None)
+    rate_duration = options.get("rate_duration", None)
     save_statistics = options.get("save_stats", False)
 
     rates, counts, txpowers = _parse_mrr(
