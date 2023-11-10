@@ -135,6 +135,7 @@ async def configure(sta: rateman.Station, **options: dict):
     airtimes = sorted([sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
+    rate_duration = option.get("rate_duration", None)
     save_statistics = options.get("save_stats", False)
 
     rates, counts, txpowers = _parse_mrr(
@@ -163,6 +164,7 @@ async def configure(sta: rateman.Station, **options: dict):
         interval,
         (rates, counts, txpowers),
         log,
+        rate_duration,
         rate_table,
     )
 
@@ -187,6 +189,7 @@ async def run(args):
         interval,
         (rates, counts, txpowers),
         log,
+        rate_duration,
         rate_table,
     ) = args
     supported_rates = sta.supported_rates
@@ -260,7 +263,11 @@ async def run(args):
 
             await asyncio.sleep(0)
 
-            while time.perf_counter_ns() - start_time < interval * weight:
+            if rate_duration is None:
+                weighted_interval = interval * weight
+            else:
+                weighted_interval = rate_duration
+            while time.perf_counter_ns() - start_time < weighted_interval:
                 await asyncio.sleep(0.001)
 
             rate_table.update(sta.last_seen, sta.stats)
