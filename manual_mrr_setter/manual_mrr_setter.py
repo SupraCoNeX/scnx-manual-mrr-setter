@@ -242,16 +242,21 @@ async def run(args):
             first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])["airtime"]
             weight = first_airtime / airtimes[0]
 
+            if rate_duration is None:
+                weighted_interval = interval * weight
+            else:
+                weighted_interval = rate_duration
+
             if control_type == "tpc":
                 log.debug(
                     f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting rates {mrr_rates} with counts {counts} "
                     f"and txpowers {mrr_txpowers} "
-                    f"for {interval * weight * 1e-6:.3f} ms."
+                    f"for {rate_duration * 1e-6:.3f} ms."
                 )
             else:
                 log.debug(
                     f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting rates {mrr_rates} with counts {counts} "
-                    f"for {interval*weight*1e-6:.3f} ms."
+                    f"for {rate_duration * 1e-6:.3f} ms."
                 )
 
             start_time = time.perf_counter_ns()
@@ -263,10 +268,6 @@ async def run(args):
 
             await asyncio.sleep(0)
 
-            if rate_duration is None:
-                weighted_interval = interval * weight
-            else:
-                weighted_interval = rate_duration
             while time.perf_counter_ns() - start_time < weighted_interval:
                 await asyncio.sleep(0.001)
 
