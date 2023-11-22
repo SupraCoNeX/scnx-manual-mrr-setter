@@ -66,6 +66,7 @@ from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
 
+
 def _parse_mrr(mrr: str, control_type) -> (list, list):
     """Parse MRR options.
 
@@ -132,14 +133,14 @@ async def configure(sta: rateman.Station, **options: dict):
 
     """
 
-    airtimes = sorted([sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates])
+    airtimes = sorted(
+        [sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates]
+    )
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
     save_statistics = options.get("save_stats", False)
 
-    rates, counts, txpowers = _parse_mrr(
-        options.get("multi_rate_retry", "random;1"), control_type
-    )
+    rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "random;1"), control_type)
     log = sta.log
 
     await sta.set_manual_rc_mode(True)
@@ -194,9 +195,7 @@ async def run(args):
     idx_txpower = 0
     idx_rate = 0
 
-    log.info(
-        f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter"
-    )
+    log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
     while True:
         try:

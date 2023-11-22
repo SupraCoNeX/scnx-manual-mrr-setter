@@ -27,7 +27,6 @@ class RateStatistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
 
-
     @property
     def save_statistics(self):
         return self._save_statistics
@@ -39,21 +38,11 @@ class RateStatistics:
             self._stats[rate] = dict()
             for txpower in sta_stats[rate].keys():
                 self._stats[rate][txpower] = dict()
-                self._stats[rate][txpower]["hist_attempts"] = sta_stats[rate][txpower][
-                    "attempts"
-                ]
-                self._stats[rate][txpower]["hist_success"] = sta_stats[rate][txpower][
-                    "success"
-                ]
-                self._stats[rate][txpower]["cur_attempts"] = sta_stats[rate][txpower][
-                    "attempts"
-                ]
-                self._stats[rate][txpower]["cur_success"] = sta_stats[rate][txpower][
-                    "success"
-                ]
-                self._stats[rate][txpower]["timestamp"] = sta_stats[rate][txpower][
-                    "timestamp"
-                ]
+                self._stats[rate][txpower]["hist_attempts"] = sta_stats[rate][txpower]["attempts"]
+                self._stats[rate][txpower]["hist_success"] = sta_stats[rate][txpower]["success"]
+                self._stats[rate][txpower]["cur_attempts"] = sta_stats[rate][txpower]["attempts"]
+                self._stats[rate][txpower]["cur_success"] = sta_stats[rate][txpower]["success"]
+                self._stats[rate][txpower]["timestamp"] = sta_stats[rate][txpower]["timestamp"]
                 if (
                     self._stats[rate][txpower]["cur_attempts"]
                     or self._stats[rate][txpower]["cur_success"]
@@ -93,10 +82,7 @@ class RateStatistics:
 
         for rate in new_stats.keys():
             for txpower in new_stats[rate].keys():
-                if (
-                    new_stats[rate][txpower]["timestamp"]
-                    > self._stats[rate][txpower]["timestamp"]
-                ):
+                if new_stats[rate][txpower]["timestamp"] > self._stats[rate][txpower]["timestamp"]:
                     self._stats[rate][txpower]["cur_success"] = (
                         new_stats[rate][txpower]["success"]
                         - self._stats[rate][txpower]["hist_success"]
@@ -112,21 +98,17 @@ class RateStatistics:
                         / self._stats[rate][txpower]["cur_attempts"]
                     )
 
-                    self._stats[rate][txpower]["hist_success"] = new_stats[rate][
-                        txpower
-                    ]["success"]
+                    self._stats[rate][txpower]["hist_success"] = new_stats[rate][txpower]["success"]
 
-                    self._stats[rate][txpower]["hist_attempts"] = new_stats[rate][
-                        txpower
-                    ]["attempts"]
+                    self._stats[rate][txpower]["hist_attempts"] = new_stats[rate][txpower][
+                        "attempts"
+                    ]
 
                     self._stats[rate][txpower]["hist_success_prob"] = (
                         self._stats[rate][txpower]["hist_success"]
                         / self._stats[rate][txpower]["hist_attempts"]
                     )
-                    self._stats[rate][txpower]["timestamp"] = new_stats[rate][txpower][
-                        "timestamp"
-                    ]
+                    self._stats[rate][txpower]["timestamp"] = new_stats[rate][txpower]["timestamp"]
 
                     self._last_updated["rates"].append((rate, txpower))
 
@@ -175,7 +157,7 @@ class RateStatistics:
             "mmrrs_rate_statistics",
             self._ap_name,
             self._radio,
-            self._sta_name.replace(":", "-")
+            self._sta_name.replace(":", "-"),
         )
 
         os.makedirs(output_file_dir, exist_ok=True)
