@@ -29,7 +29,6 @@ class RateStatistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
 
-
     @property
     def save_statistics(self):
         return self._save_statistics
@@ -43,9 +42,9 @@ class RateStatistics:
                 self._stats[rate][txpower] = dict()
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
                 self._stats[rate][txpower]["hist_attempts"] = attempts
-                self._stats[rate][txpower]["hist_success"] = success
+                self._stats[rate][txpower]["hist_success"] = successes
                 self._stats[rate][txpower]["cur_attempts"] = attempts
-                self._stats[rate][txpower]["cur_success"] = success
+                self._stats[rate][txpower]["cur_success"] = successes
                 self._stats[rate][txpower]["timestamp"] = timestamp
                 if (
                     self._stats[rate][txpower]["cur_attempts"]

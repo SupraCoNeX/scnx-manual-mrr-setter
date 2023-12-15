@@ -66,6 +66,7 @@ from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
 
+
 def _parse_mrr(mrr: str, control_type) -> (list, list):
     """Parse MRR options.
 
@@ -137,9 +138,7 @@ async def configure(sta: rateman.Station, **options: dict):
     control_type = options.get("control_type", "rc")
     save_statistics = options.get("save_stats", False)
 
-    rates, counts, txpowers = _parse_mrr(
-        options.get("multi_rate_retry", "random;1"), control_type
-    )
+    rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "random;1"), control_type)
     log = sta.log
 
     await sta.set_manual_rc_mode(True)
@@ -194,9 +193,7 @@ async def run(args):
     idx_txpower = 0
     idx_rate = 0
 
-    log.info(
-        f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter"
-    )
+    log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
     while True:
         try:
@@ -248,8 +245,9 @@ async def run(args):
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
                         c=",".join([f"{c:x}" for c in counts]),
-                        t=",".join([f"{c:x}" for t in txpowers])
-                    ) + f"for {interval * weight * 1e-6:.3f} ms."
+                        t=",".join([f"{t:x}" for t in txpowers]),
+                    )
+                    + f"for {interval * weight * 1e-6:.3f} ms."
                 )
             else:
                 log.debug(
@@ -260,7 +258,7 @@ async def run(args):
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
                         c=",".join([f"{c:x}" for c in counts]),
-                        dur=interval * weight * 1e-6
+                        dur=interval * weight * 1e-6,
                     )
                 )
 
