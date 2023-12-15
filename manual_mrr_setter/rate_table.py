@@ -151,15 +151,14 @@ class RateStatistics:
         files such as rc_stats and rc_stats_csv.
 
         """
-        output_file_path = os.path.join(
+        output_dir = os.path.join(
             self._msmt_dir,
             "mmrrs_rate_statistics",
             self._ap_name,
             self._radio,
             self._sta_name.replace(":", "-"),
-            "mmrrs_rate_statistics.txt",
         )
 
-        os.makedirs(output_file_path, exist_ok=True)
-        self._output_file_path = output_file_path
+        os.makedirs(output_dir, exist_ok=True)
+        self._output_file_path = os.path.join(output_dir, "rate_stats.txt")
         self._output_file = open(self._output_file_path, "w")
