@@ -24,7 +24,6 @@ class RateStatistics:
         self._radio = sta.radio
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
-
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
@@ -82,7 +81,7 @@ class RateStatistics:
 
     def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
-
+        
         for rate in sta.supported_rates:
             for txpower in sta.txpowers:
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
@@ -102,13 +101,11 @@ class RateStatistics:
 
                     self._stats[rate][txpower]["hist_success"] = successes
                     self._stats[rate][txpower]["hist_attempts"] = attempts
-
                     self._stats[rate][txpower]["hist_success_prob"] = (
                         self._stats[rate][txpower]["hist_success"]
                         / self._stats[rate][txpower]["hist_attempts"]
                     )
                     self._stats[rate][txpower]["timestamp"] = timestamp
-
                     self._last_updated["rates"].append((rate, txpower))
 
         self._last_updated["timestamp"] = sta.last_seen
