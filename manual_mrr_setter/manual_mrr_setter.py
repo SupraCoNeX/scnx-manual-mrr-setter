@@ -6,7 +6,7 @@
 """SCNX Manual MRR Setter
 
 This module contains the functions required to set the Multi-Rate-Retry (MRR)
-chain for the transmission of frame based on the ORCA toolset. 
+chain for the transmission of frame based on the ORCA toolset.
 A controller device uses a `rateman.RateMan` object to annotate rates
 and counts of the MRR via the Manual-MRR-Setter. Generally, resource control
 algorithm derive statistics based on which resource control decisions are
@@ -133,9 +133,7 @@ async def configure(sta: rateman.Station, **options: dict):
 
     """
 
-    airtimes = sorted(
-        [sta.accesspoint.get_rate_info(rate)["airtime"] for rate in sta.supported_rates]
-    )
+    airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
     save_statistics = options.get("save_stats", False)
@@ -235,19 +233,33 @@ async def run(args):
                     else:
                         idx_rate = (idx_rate + 1) % len(supported_rates)
 
-            first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])["airtime"]
+            first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
             weight = first_airtime / airtimes[0]
 
             if control_type == "tpc":
                 log.debug(
-                    f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting rates {mrr_rates} with counts {counts} "
-                    f"and txpowers {mrr_txpowers} "
-                    f"for {interval * weight * 1e-6:.3f} ms."
+                    "%(ap)s:%(phy)s:%(mac)s: Setting rates=[%(r)s] counts=[%(c)s] txpowers=[%(t)s]"
+                    % dict(
+                        ap=sta.accesspoint.name,
+                        phy=sta.radio,
+                        mac=sta.mac_addr,
+                        r=",".join([f"{r:x}" for r in mrr_rates]),
+                        c=",".join([f"{c:x}" for c in counts]),
+                        t=",".join([f"{t:x}" for t in txpowers]),
+                    )
+                    + f"for {interval * weight * 1e-6:.3f} ms."
                 )
             else:
                 log.debug(
-                    f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Setting rates {mrr_rates} with counts {counts} "
-                    f"for {interval*weight*1e-6:.3f} ms."
+                    "%(ap)s:%(phy)s:%(mac)s: Setting rates=[%(r)s] counts=[%(c)s] for %(dur).3f"
+                    % dict(
+                        ap=sta.accesspoint.name,
+                        phy=sta.radio,
+                        mac=sta.mac_addr,
+                        r=",".join([f"{r:x}" for r in mrr_rates]),
+                        c=",".join([f"{c:x}" for c in counts]),
+                        dur=interval * weight * 1e-6,
+                    )
                 )
 
             start_time = time.perf_counter_ns()
@@ -262,7 +274,7 @@ async def run(args):
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
 
-            rate_table.update(sta.last_seen, sta.stats)
+            rate_table.update(sta)
 
         except asyncio.CancelledError:
             if rate_table.save_statistics:
