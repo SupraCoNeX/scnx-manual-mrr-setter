@@ -211,8 +211,8 @@ async def run(args):
                     mrr_rates.append(supported_rates[0])
                 elif r == "fastest":
                     mrr_rates.append(supported_rates[-1])
-                elif r not in RATE_OPTIONS and int(r, 16) in supported_rates:
-                    mrr_rates.append(r)
+                elif r not in RATE_OPTIONS and int(r,16) in supported_rates:
+                    mrr_rates.append(int(r,16))
 
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
@@ -282,6 +282,6 @@ async def run(args):
                 rate_table.update(sta.last_seen, sta.stats)
 
         except asyncio.CancelledError:
-            if rate_table.save_statistics:
+            if rate_table and rate_table.save_statistics:
                 rate_table._output_file.close()
             break
