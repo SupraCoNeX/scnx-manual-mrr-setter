@@ -9,13 +9,14 @@ This module contains functions to derive a table of statistics for rate and powe
 """
 import datetime
 import os
+import rateman
 
 __all__ = ["RateStatistics"]
 
 
 class RateStatistics:
     def __init__(self, sta, save_statistics=False, output_dir=None):
-        self._init_stats(sta.stats)
+        self._init_stats(sta)
         self._last_updated = dict()
         self._last_updated["timestamp"] = sta.last_seen
         self._last_updated["rates"] = []
@@ -31,18 +32,19 @@ class RateStatistics:
     def save_statistics(self):
         return self._save_statistics
 
-    def _init_stats(self, sta_stats):
+    def _init_stats(self, sta: rateman.Station):
         self._stats = dict()
 
-        for rate in sta_stats.keys():
+        for rate in sta.supported_rates:
             self._stats[rate] = dict()
-            for txpower in sta_stats[rate].keys():
+            for txpower in sta.txpowers:
                 self._stats[rate][txpower] = dict()
-                self._stats[rate][txpower]["hist_attempts"] = sta_stats[rate][txpower]["attempts"]
-                self._stats[rate][txpower]["hist_success"] = sta_stats[rate][txpower]["success"]
-                self._stats[rate][txpower]["cur_attempts"] = sta_stats[rate][txpower]["attempts"]
-                self._stats[rate][txpower]["cur_success"] = sta_stats[rate][txpower]["success"]
-                self._stats[rate][txpower]["timestamp"] = sta_stats[rate][txpower]["timestamp"]
+                attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
+                self._stats[rate][txpower]["hist_attempts"] = attempts
+                self._stats[rate][txpower]["hist_success"] = successes
+                self._stats[rate][txpower]["cur_attempts"] = attempts
+                self._stats[rate][txpower]["cur_success"] = successes
+                self._stats[rate][txpower]["timestamp"] = timestamp
                 if (
                     self._stats[rate][txpower]["cur_attempts"]
                     or self._stats[rate][txpower]["cur_success"]
@@ -77,20 +79,19 @@ class RateStatistics:
     def hist_stats(self):
         return 1
 
-    def update(self, timestamp: int, new_stats: dict):
+    def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
-
-        for rate in new_stats.keys():
-            for txpower in new_stats[rate].keys():
-                if new_stats[rate][txpower]["timestamp"] > self._stats[rate][txpower]["timestamp"]:
+        
+        for rate in sta.supported_rates:
+            for txpower in sta.txpowers:
+                attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
+                if timestamp > self._stats[rate][txpower]["timestamp"]:
                     self._stats[rate][txpower]["cur_success"] = (
-                        new_stats[rate][txpower]["success"]
-                        - self._stats[rate][txpower]["hist_success"]
+                        successes - self._stats[rate][txpower]["hist_success"]
                     )
 
                     self._stats[rate][txpower]["cur_attempts"] = (
-                        new_stats[rate][txpower]["attempts"]
-                        - self._stats[rate][txpower]["hist_attempts"]
+                        attempts - self._stats[rate][txpower]["hist_attempts"]
                     )
 
                     self._stats[rate][txpower]["cur_success_prob"] = (
@@ -98,21 +99,16 @@ class RateStatistics:
                         / self._stats[rate][txpower]["cur_attempts"]
                     )
 
-                    self._stats[rate][txpower]["hist_success"] = new_stats[rate][txpower]["success"]
-
-                    self._stats[rate][txpower]["hist_attempts"] = new_stats[rate][txpower][
-                        "attempts"
-                    ]
-
+                    self._stats[rate][txpower]["hist_success"] = successes
+                    self._stats[rate][txpower]["hist_attempts"] = attempts
                     self._stats[rate][txpower]["hist_success_prob"] = (
                         self._stats[rate][txpower]["hist_success"]
                         / self._stats[rate][txpower]["hist_attempts"]
                     )
-                    self._stats[rate][txpower]["timestamp"] = new_stats[rate][txpower]["timestamp"]
-
+                    self._stats[rate][txpower]["timestamp"] = timestamp
                     self._last_updated["rates"].append((rate, txpower))
 
-        self._last_updated["timestamp"] = timestamp
+        self._last_updated["timestamp"] = sta.last_seen
 
         if self._save_statistics:
             self._print_stats()
