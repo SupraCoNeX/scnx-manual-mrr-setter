@@ -67,7 +67,7 @@ from .rate_table import RateStatistics
 __all__ = ["configure", "run"]
 
 
-def _parse_mrr(mrr: str, control_type) -> (list, list):
+def _parse_mrr(mrr: str, control_type: str) -> (list, list):
     """Parse MRR options.
 
     User-defined MRR options are parsed to provide lists of rates and counts.
@@ -136,6 +136,7 @@ async def configure(sta: rateman.Station, **options: dict):
     airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
+    rate_duration = options.get("rate_duration", None)
     save_statistics = options.get("save_stats", False)
 
     rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "random;1"), control_type)
@@ -162,6 +163,7 @@ async def configure(sta: rateman.Station, **options: dict):
         interval,
         (rates, counts, txpowers),
         log,
+        rate_duration,
         rate_table,
     )
 
@@ -186,6 +188,7 @@ async def run(args):
         interval,
         (rates, counts, txpowers),
         log,
+        rate_duration,
         rate_table,
     ) = args
     supported_rates = sta.supported_rates
@@ -236,6 +239,11 @@ async def run(args):
             first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
             weight = first_airtime / airtimes[0]
 
+            if rate_duration is None:
+                weighted_interval = interval * weight
+            else:
+                weighted_interval = rate_duration
+
             if control_type == "tpc":
                 log.debug(
                     "%(ap)s:%(phy)s:%(mac)s: Setting rates=[%(r)s] counts=[%(c)s] txpowers=[%(t)s]"
@@ -247,7 +255,7 @@ async def run(args):
                         c=",".join([f"{c:x}" for c in counts]),
                         t=",".join([f"{t:x}" for t in txpowers]),
                     )
-                    + f"for {interval * weight * 1e-6:.3f} ms."
+                    + f"for {weighted_interval * 1e-6:.3f} ms."
                 )
             else:
                 log.debug(
@@ -258,7 +266,7 @@ async def run(args):
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
                         c=",".join([f"{c:x}" for c in counts]),
-                        dur=interval * weight * 1e-6,
+                        dur=weighted_interval * 1e-6,
                     )
                 )
 
@@ -271,7 +279,7 @@ async def run(args):
 
             await asyncio.sleep(0)
 
-            while time.perf_counter_ns() - start_time < interval * weight:
+            while time.perf_counter_ns() - start_time < weighted_interval:
                 await asyncio.sleep(0.001)
 
             rate_table.update(sta)
