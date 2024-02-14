@@ -161,5 +161,5 @@ class RateStatistics:
         )
 
         os.makedirs(output_file_dir, exist_ok=True)
-        self._output_file_path = os.path.join(output_file_dir, "rate_stats")
-        self._output_file = open(self._output_file_path, "w")
+        self._output_file_path = os.path.join(output_file_dir, "rate_stats.txt")
+        self._output_file = open(self._output_file_path, "a")

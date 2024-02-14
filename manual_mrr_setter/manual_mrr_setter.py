@@ -59,12 +59,13 @@ Update interval used is 50e6 ns.
 import asyncio
 import time
 import random
-import copy
 import logging
 import rateman
 from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
+
+RATE_OPTIONS = ["random", "slowest", "fastest", "round_robin"]
 
 
 def _parse_mrr(mrr: str, control_type) -> (list, list):
@@ -138,9 +139,10 @@ async def configure(sta: rateman.Station, **options: dict):
     )
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
+    collect_statistics = options.get("collect_stats", False)
     save_statistics = options.get("save_stats", False)
 
-    rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "random;1"), control_type)
+    rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "slowest;1"), control_type)
     log = sta.log
 
     await sta.set_manual_rc_mode(True)
@@ -152,10 +154,12 @@ async def configure(sta: rateman.Station, **options: dict):
     await sta.reset_kernel_rate_stats()
     sta.reset_rate_stats()
 
-    if save_statistics:
+    if collect_statistics:
+        rate_table = RateStatistics(sta)
+    elif save_statistics:
         rate_table = RateStatistics(sta, save_statistics, options.get("data_dir", "."))
     else:
-        rate_table = RateStatistics(sta)
+        rate_table = None
 
     return (
         sta,
@@ -209,7 +213,7 @@ async def run(args):
                     mrr_rates.append(supported_rates[0])
                 elif r == "fastest":
                     mrr_rates.append(supported_rates[-1])
-                elif r in supported_rates:
+                elif r not in RATE_OPTIONS and int(r, 16) in supported_rates:
                     mrr_rates.append(r)
 
                 if control_type == "tpc":
@@ -262,7 +266,8 @@ async def run(args):
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
 
-            rate_table.update(sta.last_seen, sta.stats)
+            if rate_table:
+                rate_table.update(sta.last_seen, sta.stats)
 
         except asyncio.CancelledError:
             if rate_table.save_statistics:
