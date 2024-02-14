@@ -81,7 +81,7 @@ class RateStatistics:
 
     def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
-        
+
         for rate in sta.supported_rates:
             for txpower in sta.txpowers:
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
@@ -148,7 +148,7 @@ class RateStatistics:
         files such as rc_stats and rc_stats_csv.
 
         """
-        output_dir = os.path.join(
+        output_file_dir = os.path.join(
             self._msmt_dir,
             "mmrrs_rate_statistics",
             self._ap_name,
@@ -156,6 +156,6 @@ class RateStatistics:
             self._sta_name.replace(":", "-"),
         )
 
-        os.makedirs(output_dir, exist_ok=True)
-        self._output_file_path = os.path.join(output_dir, "rate_stats.txt")
-        self._output_file = open(self._output_file_path, "w")
+        os.makedirs(output_file_dir, exist_ok=True)
+        self._output_file_path = os.path.join(output_file_dir, "rate_stats.txt")
+        self._output_file = open(self._output_file_path, "a")
