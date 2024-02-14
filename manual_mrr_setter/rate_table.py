@@ -81,7 +81,7 @@ class RateStatistics:
 
     def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
-        
+
         for rate in sta.supported_rates:
             for txpower in sta.txpowers:
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)

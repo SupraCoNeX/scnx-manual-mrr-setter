@@ -134,11 +134,11 @@ async def configure(sta: rateman.Station, **options: dict):
 
     """
 
-    airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
     control_type = options.get("control_type", "rc")
     collect_statistics = options.get("collect_stats", False)
     save_statistics = options.get("save_stats", False)
+    airtime_weighting = options.get("airtime_weighting", False)
 
     rates, counts, txpowers = _parse_mrr(options.get("multi_rate_retry", "slowest;1"), control_type)
     log = sta.log
@@ -162,7 +162,7 @@ async def configure(sta: rateman.Station, **options: dict):
     return (
         sta,
         control_type,
-        airtimes,
+        airtime_weighting,
         interval,
         (rates, counts, txpowers),
         log,
@@ -186,7 +186,7 @@ async def run(args):
     (
         sta,
         control_type,
-        airtimes,
+        airtime_weighting,
         interval,
         (rates, counts, txpowers),
         log,
@@ -196,6 +196,9 @@ async def run(args):
     supported_txpowers = sta.accesspoint.txpowers(sta.radio)
     idx_txpower = 0
     idx_rate = 0
+
+    if airtime_weighting:
+        airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
@@ -211,8 +214,8 @@ async def run(args):
                     mrr_rates.append(supported_rates[0])
                 elif r == "fastest":
                     mrr_rates.append(supported_rates[-1])
-                elif r not in RATE_OPTIONS and int(r,16) in supported_rates:
-                    mrr_rates.append(int(r,16))
+                elif r not in RATE_OPTIONS and int(r, 16) in supported_rates:
+                    mrr_rates.append(int(r, 16))
 
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
@@ -237,8 +240,11 @@ async def run(args):
                     else:
                         idx_rate = (idx_rate + 1) % len(supported_rates)
 
-            first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
-            weight = first_airtime / airtimes[0]
+            if airtime_weighting:
+                first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
+                weight = first_airtime / airtimes[0]
+            else:
+                weight = 1
 
             if control_type == "tpc":
                 log.debug(
