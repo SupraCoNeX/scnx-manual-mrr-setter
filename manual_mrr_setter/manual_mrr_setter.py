@@ -67,7 +67,7 @@ from .rate_table import RateStatistics
 __all__ = ["configure", "run"]
 
 
-def _parse_mrr(mrr: str, control_type: str) -> (list, list):
+def _parse_mrr(mrr: str, control_type: str) -> tuple[list, list, list]:
     """Parse MRR options.
 
     User-defined MRR options are parsed to provide lists of rates and counts.
@@ -204,15 +204,6 @@ async def run(args):
             mrr_txpowers = []
 
             for mrr_stage, r in enumerate(rates):
-                if r == "random":
-                    mrr_rates.append(random.choice(supported_rates))
-                elif r == "slowest":
-                    mrr_rates.append(supported_rates[0])
-                elif r == "fastest":
-                    mrr_rates.append(supported_rates[-1])
-                elif r in supported_rates:
-                    mrr_rates.append(r)
-
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
                         mrr_txpowers.append(random.choice(supported_txpowers))
@@ -226,7 +217,13 @@ async def run(args):
                     elif float(txpowers[mrr_stage]) in supported_txpowers:
                         mrr_txpowers.append(float(txpowers[mrr_stage]))
 
-                if r == "round_robin":
+                if r == "random":
+                    mrr_rates.append(random.choice(supported_rates))
+                elif r == "slowest":
+                    mrr_rates.append(supported_rates[0])
+                elif r == "fastest":
+                    mrr_rates.append(supported_rates[-1])
+                elif r == "round_robin":
                     mrr_rates.append(supported_rates[idx_rate])
                     if control_type == "tpc":
                         if txpowers[mrr_stage] != "round_robin":
@@ -235,6 +232,8 @@ async def run(args):
                             idx_rate = (idx_rate + 1) % len(supported_rates)
                     else:
                         idx_rate = (idx_rate + 1) % len(supported_rates)
+                elif int(r) in supported_rates:
+                    mrr_rates.append(int(r))
 
             first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
             weight = first_airtime / airtimes[0]
