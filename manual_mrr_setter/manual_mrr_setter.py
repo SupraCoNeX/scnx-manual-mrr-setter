@@ -59,10 +59,8 @@ Update interval used is 50e6 ns.
 import asyncio
 import time
 import random
-import copy
 import logging
 import rateman
-import pdb
 
 from .rate_table import RateStatistics
 

@@ -7,7 +7,6 @@
 
 This module contains functions to derive a table of statistics for rate and power used for packet transmission.
 """
-import datetime
 import os
 import rateman
 
@@ -143,7 +142,7 @@ class RateStatistics:
             )
 
     def best_rates_success_prob(self):
-        best_rates = []
+        # best_rates = []
         # for rate, txpower in self._stats:
         #     if self._stats[rate][txpower]["hist_success_prob"] < self._stats[best_rates[-1][0]][best_rates[-1][1]]["hist_success_prob"]:
         #         continue
