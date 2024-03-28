@@ -62,9 +62,11 @@ import random
 import copy
 import logging
 import rateman
+import pdb
+
 from .rate_table import RateStatistics
 
-__all__ = ["configure", "run"]
+__all__ = ["configure", "run", "pause", "resume"]
 
 
 def _parse_mrr(mrr: str, control_type: str) -> tuple[list, list, list]:
@@ -108,6 +110,56 @@ def _parse_mrr(mrr: str, control_type: str) -> tuple[list, list, list]:
     return rates, counts, txpowers
 
 
+async def check_runtime(logger: logging.Logger, start: int, end: int, update_interval_ms: float) -> None:
+    """
+    Check how long it took for Minstrel-HT to run in the current interval
+    duration. If the run time is shorter than update_interval of Minstrel-HT,
+    then it sleeps until the next interval, else it logs a warning message
+    specifying the additional run time.
+
+    Parameters
+    ----------
+    logger: logging.Logger
+        Logging handle for warning message, if the update interval
+        deviates from the target
+
+    start : int
+        Start time, in nanoseconds precision, of the current update in-
+        terval
+
+    end: int
+        End time, in nanoseconds precision, of the current update interval
+
+    update_interval_ms: float
+        Target update interval
+
+    """
+
+    time_elapsed_ms = (end - start) * 1e-6
+    if time_elapsed_ms < update_interval_ms:
+        sleep_dur_ms = update_interval_ms - time_elapsed_ms
+        await asyncio.sleep(sleep_dur_ms / 1000)
+    else:
+        logger.warning(
+            "Minstrel-HT deviated from its target update interval! "
+            f"Time exceeded by {round(time_elapsed_ms - update_interval_ms, 2)} ms"
+        )
+        await asyncio.sleep(0)
+
+
+async def pause(ctx):
+    rate_table = ctx[-1]
+    rate_table.pause_rate_control()
+
+
+async def resume(ctx):
+    rate_table = ctx[-1]
+    sta = ctx[0]
+    await sta.set_manual_rc_mode(True)
+    await sta.set_manual_tpc_mode(False)
+    rate_table.resume_rate_control()
+
+
 async def configure(sta: rateman.Station, **options: dict):
     """
     Configure station to perform manual MRR chain setting. <Actual configuration steps>
@@ -132,6 +184,8 @@ async def configure(sta: rateman.Station, **options: dict):
             For logging MRR setting events.
 
     """
+
+    sta.pause_rc_on_disassoc = True
 
     airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
     interval = options.get("update_interval_ns", 10_000_000)
@@ -195,14 +249,21 @@ async def run(args):
     supported_txpowers = sta.accesspoint.txpowers(sta.radio)
     idx_txpower = 0
     idx_rate = 0
+    update_interval_ms = 50
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
     while True:
         try:
+            start = time.perf_counter_ns()
+
+            if rate_table._pause:
+                end = time.perf_counter_ns()
+                await check_runtime(sta.logger, start, end, update_interval_ms)
+                continue
             mrr_rates = []
             mrr_txpowers = []
-
+            
             for mrr_stage, r in enumerate(rates):
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
@@ -234,7 +295,7 @@ async def run(args):
                         idx_rate = (idx_rate + 1) % len(supported_rates)
                 elif int(r) in supported_rates:
                     mrr_rates.append(int(r))
-
+            
             first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
             weight = first_airtime / airtimes[0]
 
@@ -280,9 +341,10 @@ async def run(args):
 
             while time.perf_counter_ns() - start_time < weighted_interval:
                 await asyncio.sleep(0.001)
-
-            rate_table.update(sta)
-
+            
+            if sta.accesspoint:
+                rate_table.update(sta)
+        
         except asyncio.CancelledError:
             if rate_table.save_statistics:
                 rate_table._output_file.close()

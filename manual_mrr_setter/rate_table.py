@@ -25,6 +25,9 @@ class RateStatistics:
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
 
+        self._sta = sta
+        self._pause = False
+
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
@@ -115,6 +118,14 @@ class RateStatistics:
 
         if self._save_statistics:
             self._print_stats()
+    
+    def pause_rate_control(self) -> None:
+        self._pause = True
+        self._sta.log.debug("Paused Manual MRR-Setter")
+
+    def resume_rate_control(self) -> None:
+        self._pause = False
+        self._sta.log.debug("Resumed Manual MRR-Setter")
 
     def get_stats(self):
         return self._stats
