@@ -101,7 +101,7 @@ def _parse_mrr(mrr: str, control_type) -> (list, list):
         txpowers = []
 
     rates = rate_part.split(",")
-    counts = [int(cnt, 16) for cnt in count_part.split(",")]
+    counts = [int(cnt) for cnt in count_part.split(",")]
 
     if len(rates) != len(counts):
         raise ValueError("Rates and counts must have the same length")
@@ -253,8 +253,8 @@ async def run(args):
                         ap=sta.accesspoint.name,
                         phy=sta.radio,
                         mac=sta.mac_addr,
-                        r=",".join([f"{r:x}" for r in mrr_rates]),
-                        c=",".join([f"{c:x}" for c in counts]),
+                        r=",".join([f"{r}" for r in mrr_rates]),
+                        c=",".join([f"{c}" for c in counts]),
                         t=",".join([f"{t:x}" for t in txpowers]),
                     )
                     + f"for {interval * weight * 1e-6:.3f} ms."
@@ -266,8 +266,8 @@ async def run(args):
                         ap=sta.accesspoint.name,
                         phy=sta.radio,
                         mac=sta.mac_addr,
-                        r=",".join([f"{r:x}" for r in mrr_rates]),
-                        c=",".join([f"{c:x}" for c in counts]),
+                        r=",".join([f"{r}" for r in mrr_rates]),
+                        c=",".join([f"{c}" for c in counts]),
                         dur=interval * weight * 1e-6,
                     )
                 )
@@ -285,7 +285,7 @@ async def run(args):
                 await asyncio.sleep(0.001)
 
             if rate_table:
-                rate_table.update(sta.last_seen, sta.stats)
+                rate_table.update(sta)
 
         except asyncio.CancelledError:
             if rate_table and rate_table.save_statistics:
