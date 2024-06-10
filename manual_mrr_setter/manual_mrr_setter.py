@@ -285,7 +285,7 @@ async def run(args):
                 await asyncio.sleep(0.001)
 
             if rate_table:
-                rate_table.update(sta.last_seen, sta.stats)
+                rate_table.update(sta)
 
         except asyncio.CancelledError:
             if rate_table and rate_table.save_statistics:
