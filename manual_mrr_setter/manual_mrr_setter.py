@@ -255,7 +255,7 @@ async def run(args):
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
                         c=",".join([f"{c:x}" for c in counts]),
-                        t=",".join([f"{t:x}" for t in txpowers]),
+                        t=",".join([f"{t}" for t in txpowers]),
                     )
                     + f"for {interval * weight * 1e-6:.3f} ms."
                 )
@@ -273,7 +273,6 @@ async def run(args):
                 )
 
             start_time = time.perf_counter_ns()
-
             if control_type == "tpc":
                 await sta.set_rates_and_power(mrr_rates, counts, mrr_txpowers)
             else:
