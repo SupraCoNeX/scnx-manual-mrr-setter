@@ -15,7 +15,18 @@ __all__ = ["RateStatistics"]
 
 
 class RateStatistics:
-    def __init__(self, sta, save_statistics=False, output_dir=None):
+    def __init__(
+        self,
+        sta,
+        available_rates,
+        available_txpowers,
+        control_type,
+        save_statistics=False,
+        output_dir=None,
+    ):
+        self._available_rates = available_rates
+        self._available_txpowers = available_txpowers
+        self._control_type = control_type
         self._init_stats(sta)
         self._last_updated = dict()
         self._last_updated["timestamp"] = sta.last_seen
@@ -24,8 +35,10 @@ class RateStatistics:
         self._radio = sta.radio
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
+        print(self._save_statistics)
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
+            print("here")
             self._setup_output_file()
 
     @property
@@ -35,11 +48,13 @@ class RateStatistics:
     def _init_stats(self, sta: rateman.Station):
         self._stats = dict()
 
-        for rate in sta.supported_rates:
+        for rate in self._available_rates:
             self._stats[rate] = dict()
-            for txpower in sta.supported_powers:
+            for txpower in self._available_txpowers:
                 self._stats[rate][txpower] = dict()
-                attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
+                attempts, successes, timestamp = sta.get_rate_stats(
+                    rate, txpower=None if self._control_type == "rc" else txpower
+                )
                 self._stats[rate][txpower]["hist_attempts"] = attempts
                 self._stats[rate][txpower]["hist_success"] = successes
                 self._stats[rate][txpower]["cur_attempts"] = attempts
@@ -82,9 +97,11 @@ class RateStatistics:
     def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
 
-        for rate in sta.supported_rates:
-            for txpower in sta.supported_powers:
-                attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
+        for rate in self._available_rates:
+            for txpower in self._available_txpowers:
+                attempts, successes, timestamp = sta.get_rate_stats(
+                    rate, txpower=None if self._control_type == "rc" else txpower
+                )
                 if timestamp > self._stats[rate][txpower]["timestamp"]:
                     self._stats[rate][txpower]["cur_success"] = (
                         successes - self._stats[rate][txpower]["hist_success"]
@@ -153,9 +170,10 @@ class RateStatistics:
             "mmrrs_rate_statistics",
             self._ap_name,
             self._radio,
-            self._sta_name.replace(":", "-"),
+            self._sta_name,
         )
 
         os.makedirs(output_file_dir, exist_ok=True)
         self._output_file_path = os.path.join(output_file_dir, "rate_stats.txt")
+        print(self._output_file_path)
         self._output_file = open(self._output_file_path, "a")

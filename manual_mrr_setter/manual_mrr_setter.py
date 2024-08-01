@@ -146,21 +146,34 @@ async def configure(sta: rateman.Station, **options: dict):
     await sta.set_manual_rc_mode(True)
     if control_type == "tpc":
         await sta.set_manual_tpc_mode(True)
+        available_txpowers = sta.supported_powers
     else:
         await sta.set_manual_tpc_mode(False)
+        available_txpowers = [-1]
+
+    available_rates = sta.supported_rates
 
     await sta.reset_kernel_rate_stats()
     sta.reset_rate_stats()
 
-    if collect_statistics:
-        rate_table = RateStatistics(sta)
-    elif save_statistics:
-        rate_table = RateStatistics(sta, save_statistics, options.get("data_dir", "."))
+    if save_statistics:
+        rate_table = RateStatistics(
+            sta,
+            available_rates,
+            available_txpowers,
+            control_type,
+            save_statistics,
+            options.get("data_dir", "."),
+        )
+    elif collect_statistics:
+        rate_table = RateStatistics(sta, available_rates, available_txpowers, control_type)
     else:
         rate_table = None
 
     return (
         sta,
+        available_rates,
+        available_txpowers,
         control_type,
         airtime_weighting,
         interval,
@@ -185,6 +198,8 @@ async def run(args):
     """
     (
         sta,
+        available_rates,
+        available_txpowers,
         control_type,
         airtime_weighting,
         interval,
@@ -192,13 +207,12 @@ async def run(args):
         log,
         rate_table,
     ) = args
-    supported_rates = sta.supported_rates
-    supported_txpowers = sta.accesspoint.txpowers(sta.radio)
+
     idx_txpower = 0
     idx_rate = 0
 
     if airtime_weighting:
-        airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in sta.supported_rates])
+        airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in available_rates])
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
@@ -209,36 +223,36 @@ async def run(args):
 
             for mrr_stage, r in enumerate(rates):
                 if r == "random":
-                    mrr_rates.append(random.choice(supported_rates))
+                    mrr_rates.append(random.choice(available_rates))
                 elif r == "slowest":
-                    mrr_rates.append(supported_rates[0])
+                    mrr_rates.append(available_rates[0])
                 elif r == "fastest":
-                    mrr_rates.append(supported_rates[-1])
-                elif r not in RATE_OPTIONS and int(r, 16) in supported_rates:
+                    mrr_rates.append(available_rates[-1])
+                elif r not in RATE_OPTIONS and int(r, 16) in available_rates:
                     mrr_rates.append(int(r, 16))
 
                 if control_type == "tpc":
                     if txpowers[mrr_stage] == "random":
-                        mrr_txpowers.append(random.choice(supported_txpowers))
+                        mrr_txpowers.append(random.choice(available_txpowers))
                     elif txpowers[mrr_stage] == "lowest":
-                        mrr_txpowers.append(supported_txpowers[0])
+                        mrr_txpowers.append(available_txpowers[0])
                     elif txpowers[mrr_stage] == "highest":
-                        mrr_txpowers.append(supported_txpowers[-1])
+                        mrr_txpowers.append(available_txpowers[-1])
                     elif txpowers[mrr_stage] == "round_robin":
-                        mrr_txpowers.append(supported_txpowers[idx_txpower])
-                        idx_txpower = (idx_txpower + 1) % len(supported_txpowers)
-                    elif float(txpowers[mrr_stage]) in supported_txpowers:
+                        mrr_txpowers.append(available_txpowers[idx_txpower])
+                        idx_txpower = (idx_txpower + 1) % len(available_txpowers)
+                    elif float(txpowers[mrr_stage]) in available_txpowers:
                         mrr_txpowers.append(float(txpowers[mrr_stage]))
 
                 if r == "round_robin":
-                    mrr_rates.append(supported_rates[idx_rate])
+                    mrr_rates.append(available_rates[idx_rate])
                     if control_type == "tpc":
                         if txpowers[mrr_stage] != "round_robin":
-                            idx_rate = (idx_rate + 1) % len(supported_rates)
+                            idx_rate = (idx_rate + 1) % len(available_rates)
                         elif txpowers[mrr_stage] == "round_robin" and idx_txpower == 0:
-                            idx_rate = (idx_rate + 1) % len(supported_rates)
+                            idx_rate = (idx_rate + 1) % len(available_rates)
                     else:
-                        idx_rate = (idx_rate + 1) % len(supported_rates)
+                        idx_rate = (idx_rate + 1) % len(available_rates)
 
             if airtime_weighting:
                 first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
