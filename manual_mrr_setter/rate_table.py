@@ -37,7 +37,7 @@ class RateStatistics:
 
         for rate in sta.supported_rates:
             self._stats[rate] = dict()
-            for txpower in sta.txpowers:
+            for txpower in sta.supported_powers:
                 self._stats[rate][txpower] = dict()
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
                 self._stats[rate][txpower]["hist_attempts"] = attempts
@@ -83,7 +83,7 @@ class RateStatistics:
         self._last_updated["rates"] = list()
 
         for rate in sta.supported_rates:
-            for txpower in sta.txpowers:
+            for txpower in sta.supported_powers:
                 attempts, successes, timestamp = sta.get_rate_stats(rate, txpower)
                 if timestamp > self._stats[rate][txpower]["timestamp"]:
                     self._stats[rate][txpower]["cur_success"] = (
