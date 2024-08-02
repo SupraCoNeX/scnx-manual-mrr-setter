@@ -35,10 +35,8 @@ class RateStatistics:
         self._radio = sta.radio
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
-        print(self._save_statistics)
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
-            print("here")
             self._setup_output_file()
 
     @property
@@ -175,5 +173,4 @@ class RateStatistics:
 
         os.makedirs(output_file_dir, exist_ok=True)
         self._output_file_path = os.path.join(output_file_dir, "rate_stats.txt")
-        print(self._output_file_path)
         self._output_file = open(self._output_file_path, "a")
