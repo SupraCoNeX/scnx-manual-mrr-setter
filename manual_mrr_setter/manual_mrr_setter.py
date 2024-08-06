@@ -212,7 +212,7 @@ async def run(args):
     idx_rate = 0
 
     if airtime_weighting:
-        airtimes = sorted([sta.accesspoint.get_rate_info(rate)[0] for rate in available_rates])
+        airtimes = sorted([sta.accesspoint.get_rate_info(rate, "airtimes_ns") for rate in available_rates])
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
@@ -255,7 +255,7 @@ async def run(args):
                         idx_rate = (idx_rate + 1) % len(available_rates)
 
             if airtime_weighting:
-                first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0])[0]
+                first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0], "airtimes_ns")
                 weight = first_airtime / airtimes[0]
             else:
                 weight = 1
