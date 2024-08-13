@@ -28,7 +28,7 @@ class RateStatistics:
         self._available_txpowers = available_txpowers
         self._control_type = control_type
         self._init_stats(sta)
-        self._last_updated = dict()
+        self._last_updated = {}
         self._last_updated["timestamp"] = sta.last_seen
         self._last_updated["rates"] = []
         self._ap_name = sta.accesspoint.name
@@ -46,10 +46,10 @@ class RateStatistics:
 
     @property
     def updated_rates(self):
-        stats_subset = dict()
+        stats_subset = {}
         for rate, txpower in self._last_updated["rates"]:
             if rate not in stats_subset:
-                stats_subset[rate] = dict()
+                stats_subset[rate] = {}
             stats_subset[rate][txpower] = self._stats[rate][txpower]
 
         return stats_subset
@@ -67,12 +67,12 @@ class RateStatistics:
         return self._output_file
 
     def _init_stats(self, sta: rateman.Station):
-        self._stats = dict()
+        self._stats = {}
 
         for rate in self._available_rates:
-            self._stats[rate] = dict()
+            self._stats[rate] = {}
             for txpower in self._available_txpowers:
-                self._stats[rate][txpower] = dict()
+                self._stats[rate][txpower] = {}
                 attempts, successes, timestamp = sta.get_rate_stats(
                     rate, txpower=None if self._control_type == "rc" else txpower
                 )
@@ -149,7 +149,7 @@ class RateStatistics:
             )
 
     def best_rates_success_prob(self):
-        best_rates = []
+        # best_rates = []
         # for rate, txpower in self._stats:
         #     if self._stats[rate][txpower]["hist_success_prob"] < self._stats[best_rates[-1][0]][best_rates[-1][1]]["hist_success_prob"]:
         #         continue
@@ -173,7 +173,7 @@ class RateStatistics:
             "mmrrs_rate_statistics",
             self._ap_name,
             self._radio,
-            self._sta_name,
+            self._sta_name
         )
 
         os.makedirs(output_file_dir, exist_ok=True)

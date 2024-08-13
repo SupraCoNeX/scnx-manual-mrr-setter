@@ -30,9 +30,10 @@ Options for MRR chain setting are described within a dictionary. Default options
 	  * ``lowest``: Select the lowest theoretical throughput rate supported by the station.
 	  * ``fastest``: Select the highest theoretical throughput rate supported by the station.
 	  * ``random``: Select a random rate out of the all rates supported by the station.
-	  * ``round_robin``: Select a consecutive rate out of the all rates supported by the station in a
-	  round robin manner.
-	  * ``rate-idx``: Select a known fixed rate index that belongs to the set of rates supported by the station.
+	  * ``round_robin``: Select a consecutive rate out of the all rates supported by the station in
+	  a round robin manner.
+	  * ``rate-idx``: Select a known fixed rate index that belongs to the set of rates supported by
+	  the station.
 	  This index is required to be in the format defined by the ORCA < add link >
 
 2. ``update_interval_ns``
@@ -43,16 +44,16 @@ Options for MRR chain setting are described within a dictionary. Default options
 Examples
 --------
 
-1. options = ``{"multi_rate_retry":"lowest;1"}`` will set the MRR with the lowest supported rate with count 1.
+1. options = ``{"multi_rate_retry":"lowest;1"}`` will set the MRR with the lowest supported rate
+with count 1. Update interval used is 10e6 ns.
+2. options = ``{"multi_rate_retry":"random,lowest;4,1"}`` will set a randomly chosen rate in the
+first MRR stage and the lowest supported rate in the second, with counts 4 and 1 respectively.
 Update interval used is 10e6 ns.
-2. options = ``{"multi_rate_retry":"random,lowest;4,1"}`` will set a randomly chosen rate in the first MRR stage
-and the lowest supported rate in the second, with counts 4 and 1 respectively. Update interval used is 10e6 ns.
-3. options = ``{"multi_rate_retry":"round_robin, highest;5,2"}`` will set consecutive rates the first MRR stage
-from the set of supported rated in a round-robin manner with count 5, while the second stage is set with the highest
-supported rate with count 2. Update interval used is 10e6 ns.
-4. options = ``{"update_interval_ns":50e6}`` will set a randomly chosen rate in the first MRR stage with count 1.
-Update interval used is 50e6 ns.
-
+3. options = ``{"multi_rate_retry":"round_robin, highest;5,2"}`` will set consecutive rates the
+first MRR stage from the set of supported rated in a round-robin manner with count 5, while the
+second stage is set with the highest supported rate with count 2. Update interval used is 10e6 ns.
+4. options = ``{"update_interval_ns":50e6}`` will set a randomly chosen rate in the first MRR stage
+with count 1. Update interval used is 50e6 ns.
 
 """
 
@@ -65,18 +66,18 @@ from .rate_table import RateStatistics
 
 __all__ = ["configure", "run"]
 
-RATE_OPTIONS = ["random", "slowest", "fastest", "round_robin"]
-
 
 def _parse_mrr(mrr: str, control_type) -> (list, list):
-    """Parse MRR options.
+    """
+    Parse MRR options.
 
     User-defined MRR options are parsed to provide lists of rates and counts.
 
     Parameters
     ----------
     mrr: str
-        Format `rate-idx-1, rate-idx-2, ..., rate-idx-max_mrr_stage; count-1, count-2, ..., count-max_mrr_stage`.
+        Format `rate-idx-1, rate-idx-2, ..., rate-idx-max_mrr_stage; count-1, count-2, ...,
+        count-max_mrr_stage`.
         Note: len(rates) == len(counts)
 
     control_type: str
@@ -88,7 +89,6 @@ def _parse_mrr(mrr: str, control_type) -> (list, list):
         Rate per MRR stage
     counts: list
         Maximum retry count per MRR stage
-
     """
 
     rate_part, count_part, *txpower_part = mrr.split(";")
@@ -124,7 +124,8 @@ async def configure(sta: rateman.Station, **options: dict):
     -------
     sta: rateman.Station
     airtimes: list
-            Transmission airtimes in nanosecond for MCS data supported by station, sorted in ascending order.
+            Transmission airtimes in nanosecond for MCS data supported by station, sorted in
+            ascending order.
     interval: int
             Update interval for setting a given MRR chain in nanosecond.
     (rates, counts): tuple
@@ -208,9 +209,6 @@ async def run(args):
         rate_table,
     ) = args
 
-    idx_txpower = 0
-    idx_rate = 0
-
     if airtime_weighting:
         airtimes = sorted(
             [sta.accesspoint.get_rate_info(rate, "airtimes_ns") for rate in available_rates]
@@ -218,35 +216,43 @@ async def run(args):
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
+    rate_map = {
+        "random": lambda: random.choice(available_rates),
+        "slowest": lambda: available_rates[0],
+        "fastest": lambda: available_rates[-1],
+    }
+
+    txpower_map = {
+        "random": lambda: random.choice(available_txpowers),
+        "lowest": lambda: available_txpowers[0],
+        "highest": lambda: available_txpowers[-1],
+        "round_robin": lambda idx: available_txpowers[idx],
+    }
+
+    idx_txpower = 0
+    idx_rate = 0
+
     while True:
         try:
             mrr_rates = []
             mrr_txpowers = []
 
-            for mrr_stage, r in enumerate(rates):
-                if r == "random":
-                    mrr_rates.append(random.choice(available_rates))
-                elif r == "slowest":
-                    mrr_rates.append(available_rates[0])
-                elif r == "fastest":
-                    mrr_rates.append(available_rates[-1])
-                elif r not in RATE_OPTIONS and int(r, 16) in available_rates:
-                    mrr_rates.append(int(r, 16))
+            for mrr_stage, rate_option in enumerate(rates):
+                if rate_option in rate_map:
+                    mrr_rates.append(rate_map[rate_option]())
+                elif rate_option not in rate_map and int(rate_option, 16) in available_rates:
+                    mrr_rates.append(int(rate_option, 16))
 
                 if control_type == "tpc":
-                    if txpowers[mrr_stage] == "random":
-                        mrr_txpowers.append(random.choice(available_txpowers))
-                    elif txpowers[mrr_stage] == "lowest":
-                        mrr_txpowers.append(available_txpowers[0])
-                    elif txpowers[mrr_stage] == "highest":
-                        mrr_txpowers.append(available_txpowers[-1])
-                    elif txpowers[mrr_stage] == "round_robin":
-                        mrr_txpowers.append(available_txpowers[idx_txpower])
-                        idx_txpower = (idx_txpower + 1) % len(available_txpowers)
-                    elif float(txpowers[mrr_stage]) in available_txpowers:
-                        mrr_txpowers.append(float(txpowers[mrr_stage]))
+                    txpower_option = txpowers[mrr_stage]
+                    if txpower_option in txpower_map:
+                        mrr_txpowers.append(txpower_map[txpower_option]())
+                        if txpower_option == "round_robin":
+                            idx_txpower = (idx_txpower + 1) % len(available_txpowers)
+                    elif float(txpower_option) in available_txpowers:
+                        mrr_txpowers.append(float(txpower_option))
 
-                if r == "round_robin":
+                if rate_option == "round_robin":
                     mrr_rates.append(available_rates[idx_rate])
                     if control_type == "tpc":
                         if txpowers[mrr_stage] != "round_robin":
@@ -273,7 +279,7 @@ async def run(args):
                         c=",".join([f"{c:x}" for c in counts]),
                         t=",".join([f"{t}" for t in txpowers]),
                     )
-                    + f"for {interval * weight * 1e-6:.3f} ms."
+                    + f"for {interval*weight*1e-6:.3f} ms."
                 )
             else:
                 log.debug(
