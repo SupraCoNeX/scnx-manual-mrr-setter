@@ -212,7 +212,9 @@ async def run(args):
     idx_rate = 0
 
     if airtime_weighting:
-        airtimes = sorted([sta.accesspoint.get_rate_info(rate, "airtimes_ns") for rate in available_rates])
+        airtimes = sorted(
+            [sta.accesspoint.get_rate_info(rate, "airtimes_ns") for rate in available_rates]
+        )
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
@@ -302,5 +304,5 @@ async def run(args):
 
         except asyncio.CancelledError:
             if rate_table and rate_table.save_statistics:
-                rate_table._output_file.close()
+                rate_table.output_file.close()
             break

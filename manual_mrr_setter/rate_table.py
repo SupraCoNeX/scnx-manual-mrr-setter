@@ -35,6 +35,7 @@ class RateStatistics:
         self._radio = sta.radio
         self._sta_name = sta.mac_addr
         self._save_statistics = save_statistics
+        self._output_file = None
         if save_statistics:
             self._msmt_dir = output_dir if output_dir else os.getcwd()
             self._setup_output_file()
@@ -42,6 +43,28 @@ class RateStatistics:
     @property
     def save_statistics(self):
         return self._save_statistics
+
+    @property
+    def updated_rates(self):
+        stats_subset = dict()
+        for rate, txpower in self._last_updated["rates"]:
+            if rate not in stats_subset:
+                stats_subset[rate] = dict()
+            stats_subset[rate][txpower] = self._stats[rate][txpower]
+
+        return stats_subset
+
+    @property
+    def last_updated(self):
+        return self._last_updated
+
+    @property
+    def hist_stats(self):
+        return 1
+
+    @property
+    def output_file(self):
+        return self._output_file
 
     def _init_stats(self, sta: rateman.Station):
         self._stats = dict()
@@ -73,24 +96,6 @@ class RateStatistics:
                         self._stats[rate][txpower]["cur_success"]
                         / self._stats[rate][txpower]["cur_attempts"]
                     )
-
-    @property
-    def updated_rates(self):
-        stats_subset = dict()
-        for rate, txpower in self._last_updated["rates"]:
-            if rate not in stats_subset:
-                stats_subset[rate] = dict()
-            stats_subset[rate][txpower] = self._stats[rate][txpower]
-
-        return stats_subset
-
-    @property
-    def last_updated(self):
-        return self._last_updated
-
-    @property
-    def hist_stats(self):
-        return 1
 
     def update(self, sta: rateman.Station):
         self._last_updated["rates"] = list()
