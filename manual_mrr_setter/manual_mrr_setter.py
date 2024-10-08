@@ -59,6 +59,7 @@ Update interval used is 50e6 ns.
 import asyncio
 import time
 import random
+import copy
 import logging
 import rateman
 from .rate_table import RateStatistics
@@ -107,6 +108,34 @@ def _parse_mrr(mrr: str, control_type) -> (list, list):
         raise ValueError("Rates and counts must have the same length")
 
     return rates, counts, txpowers
+
+
+def _check_rate(ap, rate):
+    bandwidth = ap.get_rate_info(rate, attr="bandwidth")
+    if bandwidth == "80MHz":
+        return True
+    else:
+        return False
+
+
+def _find_fallback_rate(ap, guard_interval, available_rates):
+    for rate in available_rates:
+        if ap.get_rate_info(rate, attr="guard_interval") == guard_interval:
+            return rate
+
+
+def _process_mrr_chain(ap, mrr_rates, mrr_counts, mrr_txpowers, available_rates):
+
+    if len(mrr_rates) == 1:
+        add_fallback = _check_rate(ap, mrr_rates[0])
+        if add_fallback:
+            guard_interval = ap.get_rate_info(mrr_rates[0], attr="guard_interval")
+            fallback_rate = _find_fallback_rate(ap, guard_interval, available_rates)
+            mrr_rates.append(fallback_rate)
+            mrr_counts.append(mrr_counts[0])
+            if mrr_txpowers:
+                mrr_txpowers.append(mrr_txpowers[0])
+    return mrr_rates, mrr_counts, mrr_txpowers
 
 
 async def configure(sta: rateman.Station, **options: dict):
@@ -222,6 +251,7 @@ async def run(args):
         try:
             mrr_rates = []
             mrr_txpowers = []
+            mrr_counts = copy.deepcopy(counts)
 
             for mrr_stage, r in enumerate(rates):
                 if r == "random":
@@ -256,6 +286,10 @@ async def run(args):
                     else:
                         idx_rate = (idx_rate + 1) % len(available_rates)
 
+            mrr_rates, mrr_counts, mrr_txpowers = _process_mrr_chain(
+                sta.accesspoint, mrr_rates, mrr_counts, mrr_txpowers, available_rates
+            )
+
             if airtime_weighting:
                 first_airtime = sta.accesspoint.get_rate_info(mrr_rates[0], "airtimes_ns")
                 weight = first_airtime / airtimes[0]
@@ -270,7 +304,7 @@ async def run(args):
                         phy=sta.radio,
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
-                        c=",".join([f"{c:x}" for c in counts]),
+                        c=",".join([f"{c:x}" for c in mrr_counts]),
                         t=",".join([f"{t}" for t in txpowers]),
                     )
                     + f"for {interval * weight * 1e-6:.3f} ms."
@@ -283,16 +317,16 @@ async def run(args):
                         phy=sta.radio,
                         mac=sta.mac_addr,
                         r=",".join([f"{r:x}" for r in mrr_rates]),
-                        c=",".join([f"{c:x}" for c in counts]),
+                        c=",".join([f"{c:x}" for c in mrr_counts]),
                         dur=interval * weight * 1e-6,
                     )
                 )
 
             start_time = time.perf_counter_ns()
             if control_type == "tpc":
-                await sta.set_rates_and_power(mrr_rates, counts, mrr_txpowers)
+                await sta.set_rates_and_power(mrr_rates, mrr_counts, mrr_txpowers)
             else:
-                await sta.set_rates(mrr_rates, counts)
+                await sta.set_rates(mrr_rates, mrr_counts)
 
             await asyncio.sleep(0)
 
