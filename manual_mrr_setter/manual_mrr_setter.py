@@ -57,11 +57,14 @@ Update interval used is 50e6 ns.
 """
 
 import asyncio
+import os
 import time
+import json
 import random
 import logging
 import rateman
 from .rate_table import RateStatistics
+from .metrics import MonitorInterface
 
 __all__ = ["configure", "run"]
 
@@ -180,8 +183,8 @@ async def configure(sta: rateman.Station, **options: dict):
         (rates, counts, txpowers),
         log,
         rate_table,
+        options.get("data_dir", ".")
     )
-
 
 async def run(args):
     """
@@ -206,6 +209,7 @@ async def run(args):
         (rates, counts, txpowers),
         log,
         rate_table,
+        out_dir
     ) = args
 
     idx_txpower = 0
@@ -218,10 +222,14 @@ async def run(args):
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
+    mon = MonitorInterface(sta, namespace="sink", interface="ul-sink", interval="1")
+    tp_data = {}
+
     while True:
         try:
             mrr_rates = []
             mrr_txpowers = []
+            throughput_meas = []
 
             for mrr_stage, r in enumerate(rates):
                 if r == "random":
@@ -295,6 +303,8 @@ async def run(args):
                 await sta.set_rates(mrr_rates, counts)
 
             await asyncio.sleep(0)
+            mon.curr_rate = mrr_rates[0]
+            mon.reset_measurement()
 
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
@@ -302,7 +312,32 @@ async def run(args):
             if rate_table:
                 rate_table.update(sta)
 
+            tp_data.update({f"{mrr_rates[0]:x}": round(mon.avg_throughput, 2)})
+            log.info(
+                "%(ap)s:%(phy)s:%(mac)s: Rate=%(r)s Measured_tp=%(t)s"
+                % dict(
+                    ap=sta.accesspoint.name,
+                    phy=sta.radio,
+                    mac=sta.mac_addr,
+                    r=f"{mrr_rates[0]:x}",
+                    t=round(mon.avg_throughput, 2)),
+            )
+            sta.accesspoint.rcd_trace_file.write(f"phy0;throughput;{";".join([str(tp) for tp in mon.get_throughput_measurements()])}\n")
+
+            if idx_rate == 0:
+                filename = "tp_meas{}.json"
+                i = 1
+                while os.path.isfile(os.path.join(out_dir, filename.format(i))):
+                    i += 1
+                filename = filename.format(i)
+                with open(os.path.join(out_dir, filename), "w") as fp:
+                    json.dump(tp_data, fp)
+                raise asyncio.CancelledError
+
         except asyncio.CancelledError:
+            log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Stopping Manual-MRR Setter!")
             if rate_table and rate_table.save_statistics:
                 rate_table.output_file.close()
+            log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Stopping Monitoring Tasks!")
+            await mon.stop()
             break
