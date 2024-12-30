@@ -124,7 +124,7 @@ class MonitorInterface:
 
     async def start_tcpdump(self):
         command = [
-                'sudo', 'ip', 'netns', 'exec', self._namespace, 'tcpdump', '-i', 'any', '-n'
+                'sudo', 'ip', 'netns', 'exec', self._namespace, 'tcpdump', '-i', 'any', '-nes', '150'
             ]
 
         proc = await asyncio.create_subprocess_exec(
