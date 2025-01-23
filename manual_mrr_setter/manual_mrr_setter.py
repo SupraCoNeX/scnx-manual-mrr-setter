@@ -332,7 +332,7 @@ async def run(args):
                 filename = filename.format(i)
                 with open(os.path.join(out_dir, filename), "w") as fp:
                     json.dump(tp_data, fp)
-                sta.set_rates([available_rates[0]], [1])
+                await sta.set_rates([available_rates[0]], [1])
                 raise asyncio.CancelledError
 
         except asyncio.CancelledError:
