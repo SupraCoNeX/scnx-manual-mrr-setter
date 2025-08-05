@@ -16,8 +16,8 @@ class MonitorInterface:
         self._interval = interval
 
         self._loop = self._ap.loop
-        self._ap_client = self.connect('172.24.23.34', 'root')
-        self._sta_client = self.connect('172.24.23.35', 'root')
+        #self._ap_client = self.connect('172.24.23.34', 'root')
+        #self._sta_client = self.connect('172.24.23.35', 'root')
         self._process = None
 
         self._throughput_meas = []
@@ -67,8 +67,8 @@ class MonitorInterface:
 
         return client
 
-    def extract_noise(self, client):
-        stdin, stdout, stderr = client.exec_command('iwinfo phy0-mesh0 info | grep "Noise" | sed "s/.*Noise: //; s/ dBm//"')
+    def extract_noise(self, client, interface):
+        stdin, stdout, stderr = client.exec_command(f'iwinfo {interface} info | grep "Noise" | sed "s/.*Noise: //; s/ dBm//"')
         output = stdout.read().decode().strip()
 
         if output:
@@ -79,11 +79,11 @@ class MonitorInterface:
         while True:
             try:
                 if self._curr_rate:
-                    data = self.extract_noise(self._ap_client)
-                    self._ap.rcd_trace_file.write(f"phy0;ap;noise;{data}\n")
+                    #data = self.extract_noise(self._ap_client, "phy0-mesh0")
+                    #self._ap.rcd_trace_file.write(f"phy0;ap;noise;{data}\n")
 
-                    data = self.extract_noise(self._sta_client)
-                    self._ap.rcd_trace_file.write(f"phy0;sta;noise;{data}\n")
+                    #data = self.extract_noise(self._sta_client, "phy0-mesh0")
+                    #self._ap.rcd_trace_file.write(f"phy0;sta;noise;{data}\n")
 
                     attempts, successes, timestamp = self._sta.get_rate_stats(self._curr_rate)
                     if attempts:

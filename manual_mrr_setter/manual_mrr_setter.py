@@ -173,6 +173,11 @@ async def configure(sta: rateman.Station, **options: dict):
     else:
         rate_table = None
 
+    namespace = options.get("namespace", "sink")
+    interface = options.get("interface", "ul-sink")
+    meas_interval = options.get("interval", "1")
+    log.info(f"Using the following settings for throughput measurement: Namespace: {namespace}, Interface: {interface}, Interval: {meas_interval}")
+
     return (
         sta,
         available_rates,
@@ -183,7 +188,8 @@ async def configure(sta: rateman.Station, **options: dict):
         (rates, counts, txpowers),
         log,
         rate_table,
-        options.get("data_dir", ".")
+        (namespace, interface, meas_interval),
+        options.get("data_dir", "."),
     )
 
 async def run(args):
@@ -209,6 +215,7 @@ async def run(args):
         (rates, counts, txpowers),
         log,
         rate_table,
+        (namespace, interface, meas_interval),
         out_dir
     ) = args
 
@@ -222,7 +229,7 @@ async def run(args):
 
     log.info(f"{sta.accesspoint.name}:{sta.radio}:{sta.mac_addr}: Start manual MRR setter")
 
-    mon = MonitorInterface(sta, namespace="sink", interface="ul-sink", interval="1")
+    mon = MonitorInterface(sta, namespace=namespace, interface=interface, interval=meas_interval)
     tp_data = {}
 
     while True:
