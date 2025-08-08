@@ -295,8 +295,8 @@ async def run(args):
                 await sta.set_rates(mrr_rates, counts)
 
             await asyncio.sleep(0)
-            print(f"AP-STA attenuation: {sta.accesspoint.attenuation} dB")
-            print(f"STA RSSI: {sta.rssi} dBm")
+            print(f"STA ({sta.mac_addr}) attenuation: {sta.accesspoint.attenuation} dB")
+            print(f"STA ({sta.mac_addr}) RSSI: {sta.rssi} dBm")
 
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
