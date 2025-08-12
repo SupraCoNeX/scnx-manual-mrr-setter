@@ -20,24 +20,24 @@ Options for MRR chain setting are described within a dictionary. Default options
 
 .. code-block:: sh
 
-	multi_rate_retry: 'random;1'
-	update_interval_ns: 10_000_000
+    multi_rate_retry: 'random;1'
+    update_interval_ns: 10_000_000
 
 1. ``multi_rate_retry``
-	Per MRR stage the rate and count options can be specific using this option.
+    Per MRR stage the rate and count options can be specific using this option.
 
-	**rate options per MRR stage**
-	  * ``lowest``: Select the lowest theoretical throughput rate supported by the station.
-	  * ``fastest``: Select the highest theoretical throughput rate supported by the station.
-	  * ``random``: Select a random rate out of the all rates supported by the station.
-	  * ``round_robin``: Select a consecutive rate out of the all rates supported by the station in a
-	  round robin manner.
-	  * ``rate-idx``: Select a known fixed rate index that belongs to the set of rates supported by the station.
-	  This index is required to be in the format defined by the ORCA < add link >
+    **rate options per MRR stage**
+      * ``lowest``: Select the lowest theoretical throughput rate supported by the station.
+      * ``fastest``: Select the highest theoretical throughput rate supported by the station.
+      * ``random``: Select a random rate out of the all rates supported by the station.
+      * ``round_robin``: Select a consecutive rate out of the all rates supported by the station in a
+      round robin manner.
+      * ``rate-idx``: Select a known fixed rate index that belongs to the set of rates supported by the station.
+      This index is required to be in the format defined by the ORCA < add link >
 
 2. ``update_interval_ns``
-	Update interval defines the time duration for which a give MRR setting use applied.
-	This value is providing in nano seconds unit.
+    Update interval defines the time duration for which a give MRR setting use applied.
+    This value is providing in nano seconds unit.
 
 
 Examples
@@ -109,7 +109,7 @@ def _parse_mrr(mrr: str, control_type) -> (list, list):
     return rates, counts, txpowers
 
 
-async def configure(sta: rateman.Station, **options: dict):
+async def configure(sta: rateman.Station, feedback_sta=None, **options: dict):
     """
     Configure station to perform manual MRR chain setting. <Actual configuration steps>
 
@@ -172,6 +172,7 @@ async def configure(sta: rateman.Station, **options: dict):
 
     return (
         sta,
+        feedback_sta,
         available_rates,
         available_txpowers,
         control_type,
@@ -198,6 +199,7 @@ async def run(args):
     """
     (
         sta,
+        feedback_sta,
         available_rates,
         available_txpowers,
         control_type,
@@ -297,6 +299,9 @@ async def run(args):
             await asyncio.sleep(0)
             print(f"STA ({sta.mac_addr}) attenuation: {sta.accesspoint.attenuation} dB")
             print(f"STA ({sta.mac_addr}) RSSI: {sta.rssi} dBm")
+            print(f"For feedback STA:")
+            for client in feedback_sta.stations:
+                print(f"STA ({client.mac_addr}) RSSI: {client.rssi} dBm")
 
             while time.perf_counter_ns() - start_time < interval * weight:
                 await asyncio.sleep(0.001)
