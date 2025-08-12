@@ -57,6 +57,7 @@ Update interval used is 50e6 ns.
 """
 
 import asyncio
+import pdb
 import time
 import random
 import logging
@@ -300,7 +301,8 @@ async def run(args):
             print(f"STA ({sta.mac_addr}) attenuation: {sta.accesspoint.attenuation} dB")
             print(f"STA ({sta.mac_addr}) RSSI: {sta.rssi} dBm")
             print(f"For feedback STA:")
-            for client in feedback_sta.stations:
+            # pdb.set_trace()
+            for client in feedback_sta.stations(radio=sta.radio):
                 print(f"STA ({client.mac_addr}) RSSI: {client.rssi} dBm")
 
             while time.perf_counter_ns() - start_time < interval * weight:
