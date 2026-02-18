@@ -301,6 +301,7 @@ async def run(args):
             print(f"STA ({sta.mac_addr}) attenuation: {sta.accesspoint.attenuation} dB")
             print(f"STA ({sta.mac_addr}) RSSI: {sta.rssi} dBm")
             print(f"For feedback STA:")
+            print(f"Estimated throughput:{sta.expected_throughput}")
             # pdb.set_trace()
             for client in feedback_sta.stations(radio=sta.radio):
                 print(f"STA ({client.mac_addr}) RSSI: {client.rssi} dBm")
